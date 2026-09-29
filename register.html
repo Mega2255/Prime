@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Create your account — PrimePay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ivory: '#F7F4EC', ink: '#0F1210', navy: '#0B1E23', navy2: '#123239',
+          emerald: '#1C7C54', emerald2: '#2FA173', mint: '#8FE3B4', gold: '#C9A227', stone: '#6E6A5E',
+          danger: '#C6473F', dangerBg: '#FBEAE8',
+        },
+        fontFamily: { display: ['"Fraunces"', 'serif'], body: ['Manrope', 'sans-serif'] },
+        keyframes: {
+          spin: { '100%': { transform: 'rotate(360deg)' } },
+          popIn: { '0%': { transform: 'scale(.94)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+          fadeUp: { '0%': { opacity: '0', transform: 'translateY(14px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        },
+        animation: {
+          spinslow: 'spin 1s linear infinite',
+          popIn: 'popIn .3s cubic-bezier(.19,1,.22,1) both',
+          fadeUp: 'fadeUp .5s cubic-bezier(.16,1,.3,1) both',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html{ scroll-behavior:smooth; }
+  body{ background:#F7F4EC; }
+  ::selection{ background:#1C7C54; color:#fff; }
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-track{ background:#F7F4EC; }
+  ::-webkit-scrollbar-thumb{ background:#c9c3af; border-radius:8px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{ outline:2px solid #1C7C54; outline-offset:2px; border-radius:4px; }
+
+  .field{ width:100%; background:#fff; border:1.5px solid rgba(15,18,16,.12); border-radius:12px; padding:.85rem 1rem; font-size:14.5px; color:#0F1210; transition:border-color .2s ease, box-shadow .2s ease; }
+  select.field{ -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6A5E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right .9rem center; background-size:14px; padding-right:2.4rem; }
+  .field::placeholder{ color:#6E6A5E; opacity:.7; }
+  .field:focus{ outline:none; border-color:#1C7C54; box-shadow:0 0 0 3px rgba(28,124,84,.14); }
+  .field.err{ border-color:#C6473F; background:#FBEAE8; }
+  .label{ font-size:12.5px; font-weight:600; color:#0F1210; margin-bottom:7px; display:block; }
+  .hint{ font-size:11.5px; color:#6E6A5E; margin-top:4px; }
+  .error-msg{ font-size:11.5px; color:#C6473F; margin-top:4px; display:none; }
+  .error-msg.show{ display:block; }
+
+  .btn-primary{ position:relative; overflow:hidden; z-index:0; background:#1C7C54; color:#fff; border-radius:999px; transition:transform .2s cubic-bezier(.34,1.56,.64,1), background-color .2s; }
+  .btn-primary:hover{ background:#2FA173; }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.55; cursor:not-allowed; }
+  .btn-ghost{ background:#fff; color:#0F1210; border:1.5px solid rgba(15,18,16,.14); border-radius:999px; transition:border-color .2s, background-color .2s; }
+  .btn-ghost:hover{ border-color:#1C7C54; background:#F7F4EC; }
+
+  .step-dot{ width:9px; height:9px; border-radius:999px; background:rgba(15,18,16,.14); transition:background-color .25s, width .25s; }
+  .step-dot.active{ background:#1C7C54; width:22px; }
+  .step-dot.done{ background:#8FE3B4; }
+
+  .card{ background:#fff; border:1px solid rgba(15,18,16,.07); border-radius:24px; box-shadow:0 30px 70px -40px rgba(15,18,16,.35); }
+  .option-card{ border:1.5px solid rgba(15,18,16,.12); border-radius:14px; padding:1rem; cursor:pointer; transition:border-color .2s, background-color .2s; }
+  .option-card.selected{ border-color:#1C7C54; background:#EAF6EF; }
+  .option-card.selected .oc-dot{ background:#1C7C54; border-color:#1C7C54; }
+  .oc-dot{ width:16px; height:16px; border-radius:999px; border:1.5px solid rgba(15,18,16,.25); flex:0 0 auto; }
+
+  .step-panel{ display:none; }
+  .step-panel.active{ display:block; animation: fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
+
+  .review-row{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid rgba(15,18,16,.08); }
+  .review-row:last-child{ border-bottom:none; }
+  .review-row dt{ color:#6E6A5E; font-size:12.5px; }
+  .review-row dd{ font-weight:600; font-size:13.5px; text-align:right; max-width:60%; word-break:break-word; }
+
+  #preloader{ background: radial-gradient(120% 120% at 50% 0%, #123239 0%, #0B1E23 60%, #0F1210 100%); }
+  .pl-status.active{ color:#fff; }
+  .pl-status{ color:rgba(255,255,255,.45); transition:color .3s ease; }
+
+  #pageLoader{ background:#0B1E23; transition: opacity .6s ease, visibility .6s ease; }
+  #pageLoader.hide{ opacity:0; visibility:hidden; }
+  .pl-letter{ display:inline-block; transform:translateY(115%); opacity:0; animation: plIn .7s cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes plIn{ to{ transform:translateY(0); opacity:1; } }
+  #pageLoaderBar{ transition: width 1.4s cubic-bezier(.65,0,.35,1); }
+
+  @media (prefers-reduced-motion: reduce){
+    .step-panel.active, #preloader *{ animation:none !important; }
+    #pageLoader{ display:none; }
+    .pl-letter{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body class="bg-ivory text-ink font-body antialiased">
+
+<!-- ============ Page entrance preloader ============ -->
+<div id="pageLoader" class="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-7">
+  <div class="flex overflow-hidden font-display text-white text-3xl sm:text-4xl tracking-tight" aria-hidden="true">
+    <span class="pl-letter" style="animation-delay:.05s">P</span><span class="pl-letter" style="animation-delay:.10s">r</span><span class="pl-letter" style="animation-delay:.15s">i</span><span class="pl-letter" style="animation-delay:.20s">m</span><span class="pl-letter" style="animation-delay:.25s">e</span><span class="pl-letter text-mint" style="animation-delay:.32s">P</span><span class="pl-letter text-mint" style="animation-delay:.37s">a</span><span class="pl-letter text-mint" style="animation-delay:.42s">y</span>
+  </div>
+  <div class="w-40 h-[2px] bg-white/15 overflow-hidden rounded-full">
+    <div id="pageLoaderBar" class="h-full bg-mint w-0"></div>
+  </div>
+</div>
+
+<!-- ============ Account-creation preloader ============ -->
+<div id="preloader" class="fixed inset-0 z-[100] hidden flex-col items-center justify-center gap-6 px-6 text-center">
+  <p class="font-display font-medium text-white text-2xl animate-fadeUp">Prime<span class="text-mint">Pay</span></p>
+  <div class="relative flex items-center gap-3">
+    <svg class="animate-spinslow" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.3)" stroke-width="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#8FE3B4" stroke-width="3" stroke-linecap="round"/></svg>
+    <p id="preloaderText" class="text-white/85 text-[13px] font-medium">Setting up your account…</p>
+  </div>
+  <div class="relative flex flex-col gap-1.5 mt-1 text-[12px] font-mono">
+    <p class="pl-status" data-step="0">Creating your secure login</p>
+    <p class="pl-status" data-step="1">Generating your account number</p>
+    <p class="pl-status" data-step="2">Saving your profile</p>
+    <p class="pl-status" data-step="3">Almost there…</p>
+  </div>
+</div>
+
+<!-- ============ Header ============ -->
+<header class="relative z-10 px-5 sm:px-6 lg:px-10 pt-6">
+  <div class="mx-auto max-w-3xl flex items-center justify-between">
+    <a href="index.html" class="font-display font-semibold text-lg tracking-tight">Prime<span class="text-emerald">Pay</span></a>
+    <a href="login.html" class="text-sm text-ink/70 hover:text-emerald transition-colors">Already have an account? <span class="font-semibold text-emerald">Log in</span></a>
+  </div>
+</header>
+
+<!-- ============ Main ============ -->
+<main class="relative px-4 sm:px-6 py-10 sm:py-14">
+  <div class="mx-auto max-w-2xl">
+
+    <div class="text-center mb-8 animate-fadeUp">
+      <p class="font-display font-semibold text-2xl tracking-tight mb-3">Prime<span class="text-emerald">Pay</span></p>
+      <h1 class="font-display font-medium text-3xl sm:text-4xl tracking-tight">Create your PrimePay account</h1>
+      <p class="text-stone mt-3 text-[14.5px] max-w-md mx-auto leading-relaxed">A few details, then you're in — deposits, transfers, and withdrawals unlock once our team reviews and approves your account.</p>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="flex items-center justify-center gap-2 mb-8">
+      <span class="step-dot active" data-dot="0"></span>
+      <span class="step-dot" data-dot="1"></span>
+      <span class="step-dot" data-dot="2"></span>
+      <span class="step-dot" data-dot="3"></span>
+      <span class="step-dot" data-dot="4"></span>
+    </div>
+
+    <form id="registerForm" class="card p-6 sm:p-9" novalidate>
+
+      <!-- ===== Step 0: Account type ===== -->
+      <div class="step-panel active" data-step="0">
+        <p class="font-display font-semibold text-lg mb-1">What kind of account is this?</p>
+        <p class="text-stone text-[13px] mb-5">You can change this later from your profile.</p>
+        <div class="grid sm:grid-cols-2 gap-3 mb-6">
+          <label class="option-card selected flex items-center gap-3" data-acct-type="Personal">
+            <span class="oc-dot"></span>
+            <span>
+              <span class="block font-semibold text-[14.5px]">Personal Account</span>
+              <span class="block text-stone text-[12px]">For everyday spending and transfers</span>
+            </span>
+          </label>
+          <label class="option-card flex items-center gap-3" data-acct-type="Business">
+            <span class="oc-dot"></span>
+            <span>
+              <span class="block font-semibold text-[14.5px]">Business Account</span>
+              <span class="block text-stone text-[12px]">For companies moving money at scale</span>
+            </span>
+          </label>
+        </div>
+        <input type="hidden" id="accountType" value="Personal" />
+
+        <div class="grid sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">First name</label>
+            <input required id="firstName" class="field" placeholder="Ada" />
+            <p class="error-msg" data-err="firstName">Please enter your first name.</p>
+          </div>
+          <div>
+            <label class="label">Last name</label>
+            <input required id="lastName" class="field" placeholder="Lovelace" />
+            <p class="error-msg" data-err="lastName">Please enter your last name.</p>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="label">Email address</label>
+          <input required id="email" type="email" class="field" placeholder="you@company.com" />
+          <p class="error-msg" data-err="email">Enter a valid email address.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">Password</label>
+            <div class="relative">
+              <input required id="password" type="password" class="field pr-11" placeholder="At least 8 characters" />
+              <button type="button" class="toggle-pw absolute right-3 top-1/2 -translate-y-1/2 text-stone" data-target="password">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <p class="error-msg" data-err="password">Must be at least 8 characters.</p>
+          </div>
+          <div>
+            <label class="label">Confirm password</label>
+            <div class="relative">
+              <input required id="confirmPassword" type="password" class="field pr-11" placeholder="Repeat password" />
+              <button type="button" class="toggle-pw absolute right-3 top-1/2 -translate-y-1/2 text-stone" data-target="confirmPassword">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <p class="error-msg" data-err="confirmPassword">Passwords don't match.</p>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label">Phone number</label>
+            <input required id="phone" type="tel" class="field" placeholder="+1 555 000 1234" />
+            <p class="error-msg" data-err="phone">Please enter your phone number.</p>
+          </div>
+          <div>
+            <label class="label">Date of birth</label>
+            <input required id="dob" type="date" class="field" />
+            <p class="error-msg" data-err="dob">Please enter your date of birth.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Step 1: Location ===== -->
+      <div class="step-panel" data-step="1">
+        <p class="font-display font-semibold text-lg mb-1">Where are you based?</p>
+        <p class="text-stone text-[13px] mb-5">This sets your default account currency — you can change it later.</p>
+        <div class="grid sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">Country</label>
+            <select required id="country" class="field"><option value="" disabled selected>Select country</option></select>
+            <p class="error-msg" data-err="country">Please select your country.</p>
+          </div>
+          <div>
+            <label class="label">Account currency</label>
+            <select required id="currency" class="field"></select>
+            <p class="hint">Suggested from your country — change if you'd prefer another.</p>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="label">Street address</label>
+          <input required id="address" class="field" placeholder="14 Marina Crescent" />
+          <p class="error-msg" data-err="address">Please enter your street address.</p>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label class="label">City</label>
+            <input required id="city" class="field" placeholder="Lagos" />
+            <p class="error-msg" data-err="city">Required.</p>
+          </div>
+          <div>
+            <label class="label">State / Province</label>
+            <input required id="state" class="field" placeholder="Lagos State" />
+            <p class="error-msg" data-err="state">Required.</p>
+          </div>
+          <div>
+            <label class="label">Postal code</label>
+            <input required id="postalCode" class="field" placeholder="100001" />
+            <p class="error-msg" data-err="postalCode">Required.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Step 2: Employment ===== -->
+      <div class="step-panel" data-step="2">
+        <p class="font-display font-semibold text-lg mb-1">A little about your work</p>
+        <p class="text-stone text-[13px] mb-5">Helps us tailor your account correctly.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label">Employment status</label>
+            <select required id="employmentStatus" class="field">
+              <option value="" disabled selected>Select status</option>
+              <option>Employed full-time</option>
+              <option>Employed part-time</option>
+              <option>Self-employed</option>
+              <option>Student</option>
+              <option>Unemployed</option>
+              <option>Retired</option>
+            </select>
+            <p class="error-msg" data-err="employmentStatus">Please select an option.</p>
+          </div>
+          <div>
+            <label class="label">Occupation</label>
+            <input required id="occupation" class="field" placeholder="Software Engineer" />
+            <p class="error-msg" data-err="occupation">Please enter your occupation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Step 3: Security question ===== -->
+      <div class="step-panel" data-step="3">
+        <p class="font-display font-semibold text-lg mb-1">Set up your security question</p>
+        <p class="text-stone text-[13px] mb-5">We'll ask this as one of the checks before a withdrawal goes through — choose something only you'd know, and a hint that jogs your own memory without giving it away.</p>
+        <div class="mb-4">
+          <label class="label">Security question</label>
+          <select required id="securityQuestion" class="field">
+            <option value="" disabled selected>Select a question</option>
+            <option>What was the name of your first pet?</option>
+            <option>What city were you born in?</option>
+            <option>What is your mother's maiden name?</option>
+            <option>What was the make of your first car?</option>
+            <option>What was the name of your first school?</option>
+            <option>What is your favorite book?</option>
+            <option>What was your childhood nickname?</option>
+          </select>
+          <p class="error-msg" data-err="securityQuestion">Please select a security question.</p>
+        </div>
+        <div class="mb-4">
+          <label class="label">Your answer</label>
+          <input required id="securityAnswer" class="field" placeholder="Answer only you would know" autocomplete="off" />
+          <p class="hint">Kept on file so we can verify it's really you. Keep it consistent — capitalization and punctuation won't matter.</p>
+          <p class="error-msg" data-err="securityAnswer">Please enter an answer.</p>
+        </div>
+        <div>
+          <label class="label">Hint for yourself (optional)</label>
+          <input id="securityAnswerHint" class="field" placeholder="e.g. Starts with the letter B" />
+          <p class="hint">Shown back to you during withdrawal — don't give the answer away completely.</p>
+        </div>
+      </div>
+
+      <!-- ===== Step 4: Review & confirm ===== -->
+      <div class="step-panel" data-step="4">
+        <p class="font-display font-semibold text-lg mb-1">Review &amp; confirm</p>
+        <p class="text-stone text-[13px] mb-5">Take a moment to check everything below is correct.</p>
+
+        <dl id="reviewList" class="mb-5"></dl>
+
+        <label class="flex items-start gap-3 mb-2 cursor-pointer select-none">
+          <input type="checkbox" id="confirmAccurate" class="mt-1 w-4 h-4 accent-emerald flex-shrink-0" />
+          <span class="text-[13px] text-ink/85">I confirm the information above is accurate, and I agree to PrimePay's <a href="#" class="text-emerald underline">Terms of Service</a> and <a href="#" class="text-emerald underline">Privacy Policy</a>.</span>
+        </label>
+        <p class="error-msg" data-err="confirmAccurate">Please confirm before proceeding.</p>
+
+        <p id="submitError" class="hidden text-[13px] text-danger bg-dangerBg rounded-lg px-4 py-3 mt-3"></p>
+      </div>
+
+      <!-- Nav buttons -->
+      <div class="flex items-center justify-between gap-3 mt-8 pt-6 border-t border-ink/10">
+        <button type="button" id="backBtn" class="btn-ghost font-medium text-[14px] py-3 px-6 invisible">Back</button>
+        <button type="button" id="nextBtn" class="btn-primary font-medium text-[14.5px] py-3.5 px-8">Continue</button>
+        <button type="submit" id="proceedBtn" class="btn-primary font-medium text-[14.5px] py-3.5 px-8 hidden">Proceed &amp; create account</button>
+      </div>
+    </form>
+
+    <p class="text-center text-stone text-[13px] mt-8">Already banking with us? <a href="login.html" class="text-emerald font-semibold">Log in instead</a></p>
+  </div>
+</main>
+
+<script>
+  // Entrance preloader (independent of the account-creation flow below)
+  const pageLoader = document.getElementById('pageLoader');
+  const pageLoaderBar = document.getElementById('pageLoaderBar');
+  requestAnimationFrame(() => { pageLoaderBar.style.width = '100%'; });
+  window.addEventListener('load', () => setTimeout(() => pageLoader.classList.add('hide'), 1300));
+  setTimeout(() => pageLoader.classList.add('hide'), 2800);
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+ const firebaseConfig = {
+  apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
+  authDomain: "prime-d3446.firebaseapp.com",
+  projectId: "prime-d3446",
+  storageBucket: "prime-d3446.firebasestorage.app",
+  messagingSenderId: "13799287511",
+  appId: "1:13799287511:web:c2ccac1eddb7c0b5a4de92"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------- countries & currencies (kept in sync with the dashboard) ---------- */
+  const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Brazzaville)","Congo (DRC)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+  const CURRENCIES = [
+    { code: "USD", name: "US Dollar" }, { code: "EUR", name: "Euro" }, { code: "GBP", name: "British Pound" },
+    { code: "NGN", name: "Nigerian Naira" }, { code: "GHS", name: "Ghanaian Cedi" }, { code: "KES", name: "Kenyan Shilling" },
+    { code: "ZAR", name: "South African Rand" }, { code: "EGP", name: "Egyptian Pound" }, { code: "XOF", name: "West African CFA Franc" },
+    { code: "XAF", name: "Central African CFA Franc" }, { code: "UGX", name: "Ugandan Shilling" }, { code: "TZS", name: "Tanzanian Shilling" },
+    { code: "MAD", name: "Moroccan Dirham" }, { code: "CAD", name: "Canadian Dollar" }, { code: "AUD", name: "Australian Dollar" },
+    { code: "NZD", name: "New Zealand Dollar" }, { code: "INR", name: "Indian Rupee" }, { code: "PKR", name: "Pakistani Rupee" },
+    { code: "BDT", name: "Bangladeshi Taka" }, { code: "CNY", name: "Chinese Yuan" }, { code: "JPY", name: "Japanese Yen" },
+    { code: "KRW", name: "South Korean Won" }, { code: "SGD", name: "Singapore Dollar" }, { code: "THB", name: "Thai Baht" },
+    { code: "IDR", name: "Indonesian Rupiah" }, { code: "PHP", name: "Philippine Peso" }, { code: "VND", name: "Vietnamese Dong" },
+    { code: "AED", name: "UAE Dirham" }, { code: "SAR", name: "Saudi Riyal" }, { code: "ILS", name: "Israeli Shekel" },
+    { code: "TRY", name: "Turkish Lira" }, { code: "RUB", name: "Russian Ruble" }, { code: "CHF", name: "Swiss Franc" },
+    { code: "SEK", name: "Swedish Krona" }, { code: "NOK", name: "Norwegian Krone" }, { code: "DKK", name: "Danish Krone" },
+    { code: "PLN", name: "Polish Zloty" }, { code: "BRL", name: "Brazilian Real" }, { code: "MXN", name: "Mexican Peso" },
+    { code: "ARS", name: "Argentine Peso" }, { code: "COP", name: "Colombian Peso" },
+  ];
+  const COUNTRY_CURRENCY = {
+    "Nigeria": "NGN", "Ghana": "GHS", "Benin": "XOF", "Burkina Faso": "XOF", "Ivory Coast": "XOF", "Guinea-Bissau": "XOF",
+    "Mali": "XOF", "Niger": "XOF", "Senegal": "XOF", "Togo": "XOF", "Cameroon": "XAF", "Central African Republic": "XAF", "Chad": "XAF",
+    "Congo (Brazzaville)": "XAF", "Equatorial Guinea": "XAF", "Gabon": "XAF", "Kenya": "KES", "Uganda": "UGX", "Tanzania": "TZS",
+    "South Africa": "ZAR", "Egypt": "EGP", "Morocco": "MAD", "United Kingdom": "GBP", "Switzerland": "CHF", "Liechtenstein": "CHF",
+    "Sweden": "SEK", "Norway": "NOK", "Denmark": "DKK", "Poland": "PLN", "Turkey": "TRY", "Russia": "RUB",
+    "Austria": "EUR", "Belgium": "EUR", "Croatia": "EUR", "Cyprus": "EUR", "Estonia": "EUR", "Finland": "EUR", "France": "EUR",
+    "Germany": "EUR", "Greece": "EUR", "Ireland": "EUR", "Italy": "EUR", "Latvia": "EUR", "Lithuania": "EUR", "Luxembourg": "EUR",
+    "Malta": "EUR", "Monaco": "EUR", "Netherlands": "EUR", "Portugal": "EUR", "San Marino": "EUR", "Slovakia": "EUR", "Slovenia": "EUR",
+    "Spain": "EUR", "Vatican City": "EUR", "Andorra": "EUR", "United States": "USD", "Canada": "CAD", "Mexico": "MXN", "Brazil": "BRL",
+    "Argentina": "ARS", "Colombia": "COP", "India": "INR", "Pakistan": "PKR", "Bangladesh": "BDT", "China": "CNY", "Japan": "JPY",
+    "South Korea": "KRW", "Singapore": "SGD", "Thailand": "THB", "Indonesia": "IDR", "Philippines": "PHP", "Vietnam": "VND",
+    "United Arab Emirates": "AED", "Saudi Arabia": "SAR", "Israel": "ILS", "Australia": "AUD", "New Zealand": "NZD",
+  };
+
+  COUNTRIES.forEach((c) => { const o = document.createElement("option"); o.value = c; o.textContent = c; $("country").appendChild(o); });
+  CURRENCIES.forEach((c) => { const o = document.createElement("option"); o.value = c.code; o.textContent = `${c.code} — ${c.name}`; $("currency").appendChild(o); });
+  $("country").addEventListener("change", () => {
+    const suggested = COUNTRY_CURRENCY[$("country").value];
+    if (suggested) $("currency").value = suggested;
+  });
+
+  /* ---------- account type selector ---------- */
+  document.querySelectorAll("[data-acct-type]").forEach((card) => {
+    card.addEventListener("click", () => {
+      document.querySelectorAll("[data-acct-type]").forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+      $("accountType").value = card.dataset.acctType === "Business" ? "Business Account" : "Personal Account";
+    });
+  });
+  $("accountType").value = "Personal Account";
+
+  /* ---------- show/hide password ---------- */
+  document.querySelectorAll(".toggle-pw").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = $(btn.dataset.target);
+      input.type = input.type === "password" ? "text" : "password";
+    });
+  });
+
+  /* ---------- step wizard ---------- */
+  const TOTAL_STEPS = 5;
+  let currentStep = 0;
+
+  function showStep(i) {
+    document.querySelectorAll(".step-panel").forEach((p) => p.classList.toggle("active", Number(p.dataset.step) === i));
+    document.querySelectorAll(".step-dot").forEach((d) => {
+      const idx = Number(d.dataset.dot);
+      d.classList.toggle("active", idx === i);
+      d.classList.toggle("done", idx < i);
+    });
+    $("backBtn").classList.toggle("invisible", i === 0);
+    $("nextBtn").classList.toggle("hidden", i === TOTAL_STEPS - 1);
+    $("proceedBtn").classList.toggle("hidden", i !== TOTAL_STEPS - 1);
+    if (i === TOTAL_STEPS - 1) buildReview();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const STEP_FIELDS = {
+    0: ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "dob"],
+    1: ["country", "address", "city", "state", "postalCode"],
+    2: ["employmentStatus", "occupation"],
+    3: ["securityQuestion", "securityAnswer"],
+    4: ["confirmAccurate"],
+  };
+
+  function setFieldError(id, show) {
+    const input = $(id);
+    const msg = document.querySelector(`.error-msg[data-err="${id}"]`);
+    if (input && input.classList) input.classList.toggle("err", !!show);
+    if (msg) msg.classList.toggle("show", !!show);
+  }
+
+  function validateStep(i) {
+    let ok = true;
+    (STEP_FIELDS[i] || []).forEach((id) => {
+      if (id === "confirmAccurate") {
+        const valid = $("confirmAccurate").checked;
+        setFieldError(id, !valid);
+        if (!valid) ok = false;
+        return;
+      }
+      const el = $(id);
+      let valid = !!el.value && el.value.trim() !== "";
+      if (id === "email" && valid) valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+      if (id === "password" && valid) valid = el.value.length >= 8;
+      if (id === "confirmPassword") valid = $("confirmPassword").value === $("password").value && $("confirmPassword").value.length >= 8;
+      setFieldError(id, !valid);
+      if (!valid) ok = false;
+    });
+    return ok;
+  }
+
+  $("nextBtn").addEventListener("click", () => {
+    if (!validateStep(currentStep)) return;
+    currentStep = Math.min(currentStep + 1, TOTAL_STEPS - 1);
+    showStep(currentStep);
+  });
+  $("backBtn").addEventListener("click", () => {
+    currentStep = Math.max(currentStep - 1, 0);
+    showStep(currentStep);
+  });
+
+  function buildReview() {
+    const rows = [
+      ["Account type", $("accountType").value],
+      ["Full name", `${$("firstName").value.trim()} ${$("lastName").value.trim()}`],
+      ["Email", $("email").value.trim()],
+      ["Phone", $("phone").value.trim()],
+      ["Date of birth", $("dob").value],
+      ["Country", $("country").value],
+      ["Currency", $("currency").value],
+      ["Address", $("address").value.trim()],
+      ["City / State", `${$("city").value.trim()}, ${$("state").value.trim()}`],
+      ["Postal code", $("postalCode").value.trim()],
+      ["Employment", $("employmentStatus").value],
+      ["Occupation", $("occupation").value.trim()],
+      ["Security question", $("securityQuestion").value],
+    ];
+    $("reviewList").innerHTML = rows.map(([k, v]) => `<div class="review-row"><dt>${k}</dt><dd>${v || "—"}</dd></div>`).join("");
+  }
+
+  /* ---------- account number generation ---------- */
+  function generateAccountNumber() {
+    return "4" + String(Math.floor(100000000 + Math.random() * 900000000));
+  }
+  async function reserveAccountNumber(uid) {
+    for (let i = 0; i < 8; i++) {
+      const acct = generateAccountNumber();
+      const snap = await get(ref(db, `accountNumbers/${acct}`));
+      if (!snap.exists()) {
+        await set(ref(db, `accountNumbers/${acct}`), uid);
+        return acct;
+      }
+    }
+    throw new Error("Could not generate a unique account number — please try again.");
+  }
+
+  /* ---------- preloader ---------- */
+  function showPreloader() { $("preloader").classList.remove("hidden"); $("preloader").classList.add("flex"); }
+  function setPreloaderStep(step, text) {
+    document.querySelectorAll(".pl-status").forEach((el) => el.classList.toggle("active", Number(el.dataset.step) <= step));
+    if (text) $("preloaderText").textContent = text;
+  }
+
+  /* ---------- submit ---------- */
+  $("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!validateStep(4)) return;
+
+    const submitBtn = $("proceedBtn");
+    submitBtn.disabled = true;
+    showPreloader();
+    setPreloaderStep(0, "Creating your secure login…");
+
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    const firstName = $("firstName").value.trim();
+    const lastName = $("lastName").value.trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = cred.user.uid;
+      try { await updateProfile(cred.user, { displayName: fullName }); } catch (_) {}
+
+      setPreloaderStep(1, "Generating your account number…");
+      const accountNumber = await reserveAccountNumber(uid);
+
+      setPreloaderStep(2, "Saving your profile…");
+      const userRecord = {
+        firstName, lastName, fullName,
+        email,
+        phone: $("phone").value.trim(),
+        dob: $("dob").value,
+        country: $("country").value,
+        currency: $("currency").value,
+        address: $("address").value.trim(),
+        city: $("city").value.trim(),
+        state: $("state").value.trim(),
+        postalCode: $("postalCode").value.trim(),
+        employmentStatus: $("employmentStatus").value,
+        occupation: $("occupation").value.trim(),
+        accountType: $("accountType").value,
+        accountNumber,
+        balance: 0,
+        active: false,
+        suspended: false,
+        securityQuestion: $("securityQuestion").value,
+        securityAnswer: $("securityAnswer").value.trim(),
+        securityAnswerHint: $("securityAnswerHint").value.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      await set(ref(db, `users/${uid}`), userRecord);
+
+      setPreloaderStep(3, "Almost there…");
+      await new Promise((r) => setTimeout(r, 500));
+
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      $("preloader").classList.add("hidden");
+      $("preloader").classList.remove("flex");
+      submitBtn.disabled = false;
+      const messages = {
+        "auth/email-already-in-use": "An account already exists with that email — try logging in instead.",
+        "auth/invalid-email": "That email address doesn't look right.",
+        "auth/weak-password": "Please choose a stronger password (at least 8 characters).",
+      };
+      const errEl = $("submitError");
+      errEl.textContent = messages[err.code] || err.message || "Something went wrong — please try again.";
+      errEl.classList.remove("hidden");
+    }
+  });
+
+  showStep(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PrimePay — Banking built for global business</title>
+<meta name="description" content="PrimePay: multi-currency business accounts, cards, and transfers for companies operating across borders.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ivory: '#F7F4EC', ink: '#0F1210', navy: '#0B1E23', navy2: '#123239',
+          emerald: '#1C7C54', emerald2: '#2FA173', mint: '#8FE3B4', gold: '#C9A227', stone: '#6E6A5E',
+        },
+        fontFamily: { display: ['"Fraunces"', 'serif'], body: ['Manrope', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html{ scroll-behavior:smooth; }
+  body{ background:#F7F4EC; overflow-x:hidden; }
+  body.locked{ overflow:hidden; height:100vh; }
+  ::selection{ background:#1C7C54; color:#fff; }
+
+  .reveal{ opacity:0; transform: translateY(28px); transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
+  .reveal.in{ opacity:1; transform: translateY(0); }
+  .reveal-d1.in{ transition-delay:.08s; } .reveal-d2.in{ transition-delay:.16s; }
+  .reveal-d3.in{ transition-delay:.24s; } .reveal-d4.in{ transition-delay:.32s; }
+
+  @keyframes floatY{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-10px);} }
+  .float{ animation: floatY 5s ease-in-out infinite; }
+
+  .marquee{ display:flex; width:max-content; animation: scrollx 32s linear infinite; }
+  .marquee:hover{ animation-play-state: paused; }
+  @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+
+  .tilt{ transition: transform .25s ease, box-shadow .25s ease; will-change: transform; }
+  .btn{ transition: transform .25s cubic-bezier(.16,1,.3,1), background-color .25s, box-shadow .25s; }
+  .btn:hover{ transform: translateY(-2px); }
+  .navbar{ transition: background-color .35s ease, box-shadow .35s ease; }
+  .tick{ font-variant-numeric: tabular-nums; }
+  .parallax-img{ will-change: transform; }
+
+  /* preloader */
+  #preloader{ transition: opacity .6s ease, visibility .6s ease; }
+  #preloader.hide{ opacity:0; visibility:hidden; }
+  .pl-letter{ display:inline-block; transform:translateY(115%); opacity:0; animation: plIn .7s cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes plIn{ to{ transform:translateY(0); opacity:1; } }
+  #preloaderBar{ transition: width 1.5s cubic-bezier(.65,0,.35,1); }
+
+  /* icon draw */
+  .icon-draw path{ stroke-dasharray:120; stroke-dashoffset:120; transition: stroke-dashoffset 1.3s ease; }
+  .reveal.in .icon-draw path{ stroke-dashoffset:0; }
+
+  /* pricing pulse */
+  .badge-pulse{ animation: pulseGlow 2.6s ease-in-out infinite; }
+  @keyframes pulseGlow{ 0%,100%{ box-shadow:0 0 0 0 rgba(28,124,84,.35);} 50%{ box-shadow:0 0 0 12px rgba(28,124,84,0);} }
+
+  /* how-it-works connector */
+  .connector{ transform: scaleX(0); transform-origin:left; transition: transform 1.4s cubic-bezier(.16,1,.3,1); }
+  .reveal.in .connector{ transform: scaleX(1); }
+
+  details > summary{ list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker{ display:none; }
+
+  /* ========== MOBILE DRAWER ========== */
+  #mobileDrawer{
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(85vw, 320px);
+    z-index: 200;
+    background: #0B1E23;
+    transform: translateX(110%);
+    transition: transform .38s cubic-bezier(.16,1,.3,1);
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+  #mobileDrawer.open{ transform: translateX(0); }
+  #drawerBackdrop{
+    position: fixed; inset: 0; z-index: 199;
+    background: rgba(7,16,18,.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s;
+  }
+  #drawerBackdrop.show{ opacity: 1; pointer-events: auto; }
+  .drawer-link{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    font-size: 1rem; font-weight: 600;
+    color: rgba(255,255,255,.75);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    text-decoration: none;
+    transition: background .2s, color .2s;
+  }
+  .drawer-link:hover{ background: rgba(255,255,255,.06); color: #fff; }
+  .drawer-link .chev{ font-size: .7rem; opacity: .4; }
+  /* hamburger icon morph */
+  .ham-line{ display:block; width:22px; height:2px; background:currentColor; border-radius:2px; transition: transform .3s, opacity .3s; transform-origin: center; }
+  .ham-line:nth-child(2){ margin: 5px 0; }
+  #hamburger.open .ham-line:nth-child(1){ transform: translateY(7px) rotate(45deg); }
+  #hamburger.open .ham-line:nth-child(2){ opacity: 0; transform: scaleX(0); }
+  #hamburger.open .ham-line:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ transition:none; opacity:1; transform:none; }
+    .float, .marquee, .badge-pulse{ animation:none; }
+    .tilt, .btn:hover{ transition:none; transform:none; }
+    .parallax-img{ transform:none !important; }
+    #preloader{ display:none; }
+    .pl-letter{ animation:none; opacity:1; transform:none; }
+    .icon-draw path, .connector{ transition:none; stroke-dashoffset:0; transform:scaleX(1); }
+    #mobileDrawer{ transition:none; }
+  }
+
+  a:focus-visible, button:focus-visible, summary:focus-visible{ outline:2px solid #1C7C54; outline-offset:3px; border-radius:4px; }
+  ::-webkit-scrollbar{ width:10px; } ::-webkit-scrollbar-track{ background:#F7F4EC; } ::-webkit-scrollbar-thumb{ background:#c9c3af; border-radius:8px; }
+</style>
+</head>
+<body class="bg-ivory text-ink font-body antialiased locked">
+
+<!-- PRELOADER -->
+<div id="preloader" class="fixed inset-0 z-[999] bg-navy flex flex-col items-center justify-center gap-7">
+  <div class="flex overflow-hidden font-display text-white text-4xl sm:text-5xl tracking-tight" aria-hidden="true">
+    <span class="pl-letter" style="animation-delay:.05s">P</span><span class="pl-letter" style="animation-delay:.10s">r</span><span class="pl-letter" style="animation-delay:.15s">i</span><span class="pl-letter" style="animation-delay:.20s">m</span><span class="pl-letter" style="animation-delay:.25s">e</span><span class="pl-letter text-mint" style="animation-delay:.32s">P</span><span class="pl-letter text-mint" style="animation-delay:.37s">a</span><span class="pl-letter text-mint" style="animation-delay:.42s">y</span>
+  </div>
+  <div class="w-44 h-[2px] bg-white/15 overflow-hidden rounded-full">
+    <div id="preloaderBar" class="h-full bg-mint w-0"></div>
+  </div>
+</div>
+
+<!-- SCROLL PROGRESS -->
+<div class="fixed top-0 inset-x-0 h-[3px] z-[90] bg-transparent">
+  <div id="scrollBar" class="h-full w-0 bg-gradient-to-r from-emerald to-mint"></div>
+</div>
+
+<!-- ========== MOBILE DRAWER ========== -->
+<div id="drawerBackdrop" aria-hidden="true"></div>
+<div id="mobileDrawer" role="dialog" aria-modal="true" aria-label="Site navigation">
+  <!-- Drawer header -->
+  <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
+    <span class="font-display text-white text-lg font-semibold">Prime<span class="text-mint">Pay</span></span>
+    <button id="closeDrawer" aria-label="Close menu" class="w-9 h-9 rounded-xl flex items-center justify-center text-white/70 hover:bg-white/10 transition">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <!-- Nav links -->
+  <nav class="flex-1 overflow-y-auto py-3">
+    <a href="#features" class="drawer-link" data-close-drawer>
+      <span>Product</span>
+      <span class="chev">›</span>
+    </a>
+    <a href="#how" class="drawer-link" data-close-drawer>
+      <span>How it works</span>
+      <span class="chev">›</span>
+    </a>
+    <a href="#pricing" class="drawer-link" data-close-drawer>
+      <span>Pricing</span>
+      <span class="chev">›</span>
+    </a>
+    <a href="#proof" class="drawer-link" data-close-drawer>
+      <span>Customers</span>
+      <span class="chev">›</span>
+    </a>
+    <a href="#" class="drawer-link" data-close-drawer>
+      <span>About</span>
+      <span class="chev">›</span>
+    </a>
+  </nav>
+
+  <!-- Drawer footer CTAs -->
+  <div class="px-5 py-6 space-y-3 border-t border-white/10">
+    <a href="login.html" class="flex items-center justify-center w-full py-3 rounded-full border border-white/20 text-white font-semibold text-sm transition hover:bg-white/10">
+      Log in
+    </a>
+    <a href="register.html" class="flex items-center justify-center w-full py-3 rounded-full bg-emerald text-white font-semibold text-sm transition hover:bg-emerald2">
+      Open an account
+    </a>
+  </div>
+</div>
+
+<!-- ========== NAV ========== -->
+<header id="nav" class="navbar fixed top-0 inset-x-0 z-50 py-4 px-5 sm:px-8">
+  <div class="mx-auto max-w-6xl flex items-center justify-between">
+    <!-- Logo -->
+    <a href="#top" class="font-display font-semibold text-xl tracking-tight" id="logo">PrimePay</a>
+
+    <!-- Desktop links -->
+    <nav class="hidden md:flex items-center gap-8 text-sm" id="navlinks">
+      <a href="#features" class="hover:opacity-70 transition-opacity">Product</a>
+      <a href="#how" class="hover:opacity-70 transition-opacity">How it works</a>
+      <a href="#pricing" class="hover:opacity-70 transition-opacity">Pricing</a>
+      <a href="#proof" class="hover:opacity-70 transition-opacity">Customers</a>
+    </nav>
+
+    <!-- Desktop right -->
+    <div class="hidden md:flex items-center gap-4">
+      <a href="login.html" class="text-sm hover:opacity-70 transition-opacity" id="loginlink">Log in</a>
+      <a href="register.html" class="btn bg-emerald text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-emerald2">Open an account</a>
+    </div>
+
+    <!-- Mobile right: CTA + hamburger -->
+    <div class="flex md:hidden items-center gap-3">
+      <a href="register.html" class="btn bg-emerald text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-emerald2 whitespace-nowrap">Get started</a>
+      <button id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileDrawer"
+        class="w-10 h-10 rounded-xl flex flex-col items-center justify-center text-current transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald">
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section id="top" class="relative min-h-[92vh] flex items-end overflow-hidden bg-navy">
+  <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1800&auto=format&fit=crop" alt="City skyline at dusk" class="parallax-img absolute inset-0 w-full h-full object-cover opacity-60" id="heroImg">
+  <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/20"></div>
+  <div class="absolute inset-0 bg-gradient-to-r from-navy/80 via-transparent to-transparent"></div>
+  <div id="heroGlow" class="pointer-events-none absolute w-[520px] h-[520px] rounded-full bg-mint/20 blur-3xl z-[1]" style="left:-260px; top:-260px;"></div>
+
+  <div class="relative z-10 w-full pb-16 sm:pb-24 pt-36 sm:pt-40">
+    <div class="mx-auto max-w-6xl px-5 sm:px-8">
+      <div class="max-w-2xl">
+        <p class="reveal text-mint text-sm tracking-wide mb-5">Business banking, without the border fees</p>
+        <h1 class="reveal reveal-d1 font-display font-medium text-[2.2rem] leading-[1.08] sm:text-6xl lg:text-[4rem] text-white tracking-tight">Money that moves as fast as your business does.</h1>
+        <p class="reveal reveal-d2 mt-6 text-white/80 text-base sm:text-lg max-w-lg leading-relaxed">Multi-currency accounts, dedicated IBANs, and cards for teams operating in more than one country — set up in minutes, not weeks.</p>
+        <div class="reveal reveal-d3 mt-9 flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <a href="register.html" class="btn justify-center bg-white text-navy px-6 py-3.5 rounded-full font-medium hover:bg-mint/90 text-center">Open an account</a>
+          <a href="#how" class="btn justify-center border border-white/30 text-white px-6 py-3.5 rounded-full font-medium hover:bg-white/10 text-center">See how it works</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="float hidden lg:block absolute right-10 top-40 z-10 bg-white/95 backdrop-blur rounded-2xl px-6 py-5 shadow-2xl w-56">
+    <p class="text-stone text-xs mb-1">Transferred today</p>
+    <p class="font-display text-2xl text-navy">$18.4M</p>
+    <p class="text-emerald text-xs mt-1">↑ across 42 currencies</p>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<style>
+  .marquee-track { display:flex; width:max-content; animation: scrollx 38s linear infinite; align-items:center; }
+  .marquee-track:hover { animation-play-state:paused; }
+  @keyframes scrollx { from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  .brand-chip {
+    display:inline-flex; align-items:center; gap:10px;
+    padding: 0 36px;
+    white-space: nowrap;
+    opacity: 0.62;
+    transition: opacity .2s;
+  }
+  .brand-chip:hover { opacity: 1; }
+  .brand-chip .bname {
+    font-size: 12px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #6E6A5E;
+  }
+  .brand-logo { flex-shrink: 0; }
+  /* divider dot between brands */
+  .brand-sep { width:4px; height:4px; border-radius:50%; background:#C9A227; opacity:.35; flex-shrink:0; }
+</style>
+
+<div class="bg-ivory border-b border-ink/10 py-5 overflow-hidden" aria-hidden="true">
+  <div class="marquee-track">
+
+    <!-- ① MERIDIAN GROUP — compass rose -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="12" stroke="#0B1E23" stroke-width="1.5"/>
+        <path d="M14 4v20M4 14h20" stroke="#0B1E23" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M14 4 L16 12 L14 10 L12 12 Z" fill="#1C7C54"/>
+        <circle cx="14" cy="14" r="2.2" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Meridian Group</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- ② NORTHFIELD — mountain -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="30" height="22" viewBox="0 0 30 22" fill="none">
+        <path d="M2 20 L10 6 L15 13 L19 8 L28 20 Z" fill="#0B1E23"/>
+        <path d="M19 8 L23 14" stroke="#8FE3B4" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M10 6 L13 10" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".5"/>
+      </svg>
+      <span class="bname">Northfield</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- ③ OSLO & CO — minimalist O with dot -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="11" stroke="#0B1E23" stroke-width="2"/>
+        <circle cx="14" cy="14" r="3.5" fill="#C9A227"/>
+        <circle cx="14" cy="4.5" r="1.5" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Oslo &amp; Co</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- ④ HALCYON LABS — flask / beaker -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="24" height="28" viewBox="0 0 24 28" fill="none">
+        <path d="M8 2 h8 v10 l6 12 H2 L8 12 Z" fill="#0B1E23" opacity=".08" stroke="#0B1E23" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M6 22 h12" stroke="#8FE3B4" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="10" cy="20" r="1.2" fill="#1C7C54"/>
+        <circle cx="14" cy="18" r="0.8" fill="#1C7C54" opacity=".6"/>
+        <path d="M9 2 h6" stroke="#0B1E23" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="bname">Halcyon Labs</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- ⑤ VESTRA — upward arrow / chevron -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="24" height="28" viewBox="0 0 24 28" fill="none">
+        <path d="M12 3 L22 25 L12 19 L2 25 Z" fill="#0B1E23"/>
+        <path d="M12 3 L22 25 L12 19" fill="#1C7C54"/>
+      </svg>
+      <span class="bname">Vestra</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- ⑥ KADENCE — sound wave / bars -->
+    <div class="brand-chip">
+      <svg class="brand-logo" width="30" height="24" viewBox="0 0 30 24" fill="none">
+        <rect x="1"  y="9"  width="4" height="6"  rx="2" fill="#0B1E23"/>
+        <rect x="7"  y="4"  width="4" height="16" rx="2" fill="#0B1E23"/>
+        <rect x="13" y="1"  width="4" height="22" rx="2" fill="#1C7C54"/>
+        <rect x="19" y="4"  width="4" height="16" rx="2" fill="#0B1E23"/>
+        <rect x="25" y="9"  width="4" height="6"  rx="2" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Kadence</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <!-- duplicate set for seamless loop -->
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="12" stroke="#0B1E23" stroke-width="1.5"/>
+        <path d="M14 4v20M4 14h20" stroke="#0B1E23" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M14 4 L16 12 L14 10 L12 12 Z" fill="#1C7C54"/>
+        <circle cx="14" cy="14" r="2.2" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Meridian Group</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="30" height="22" viewBox="0 0 30 22" fill="none">
+        <path d="M2 20 L10 6 L15 13 L19 8 L28 20 Z" fill="#0B1E23"/>
+        <path d="M19 8 L23 14" stroke="#8FE3B4" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M10 6 L13 10" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".5"/>
+      </svg>
+      <span class="bname">Northfield</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="11" stroke="#0B1E23" stroke-width="2"/>
+        <circle cx="14" cy="14" r="3.5" fill="#C9A227"/>
+        <circle cx="14" cy="4.5" r="1.5" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Oslo &amp; Co</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="24" height="28" viewBox="0 0 24 28" fill="none">
+        <path d="M8 2 h8 v10 l6 12 H2 L8 12 Z" fill="#0B1E23" opacity=".08" stroke="#0B1E23" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M6 22 h12" stroke="#8FE3B4" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="10" cy="20" r="1.2" fill="#1C7C54"/>
+        <circle cx="14" cy="18" r="0.8" fill="#1C7C54" opacity=".6"/>
+        <path d="M9 2 h6" stroke="#0B1E23" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="bname">Halcyon Labs</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="24" height="28" viewBox="0 0 24 28" fill="none">
+        <path d="M12 3 L22 25 L12 19 L2 25 Z" fill="#0B1E23"/>
+        <path d="M12 3 L22 25 L12 19" fill="#1C7C54"/>
+      </svg>
+      <span class="bname">Vestra</span>
+    </div>
+    <div class="brand-sep"></div>
+
+    <div class="brand-chip">
+      <svg class="brand-logo" width="30" height="24" viewBox="0 0 30 24" fill="none">
+        <rect x="1"  y="9"  width="4" height="6"  rx="2" fill="#0B1E23"/>
+        <rect x="7"  y="4"  width="4" height="16" rx="2" fill="#0B1E23"/>
+        <rect x="13" y="1"  width="4" height="22" rx="2" fill="#1C7C54"/>
+        <rect x="19" y="4"  width="4" height="16" rx="2" fill="#0B1E23"/>
+        <rect x="25" y="9"  width="4" height="6"  rx="2" fill="#0B1E23"/>
+      </svg>
+      <span class="bname">Kadence</span>
+    </div>
+    <div class="brand-sep"></div>
+
+  </div>
+</div>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" class="py-20 sm:py-28 lg:py-32">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <div class="max-w-xl mb-14 sm:mb-20">
+      <h2 class="reveal font-display font-medium text-3xl sm:text-4xl tracking-tight">Everything a growing business needs from a bank.</h2>
+      <p class="reveal reveal-d1 mt-4 text-stone leading-relaxed">One account, built for how companies actually operate across markets.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      <div class="tilt reveal bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1">
+        <div class="h-44 overflow-hidden"><img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1200&auto=format&fit=crop" alt="Dashboard showing financial charts" class="w-full h-full object-cover"></div>
+        <div class="p-7"><h3 class="font-display text-xl mb-2">Multi-currency accounts</h3><p class="text-stone text-sm leading-relaxed">Hold and convert 40+ currencies at transparent, real exchange rates — no markup buried in the fine print.</p></div>
+      </div>
+      <div class="tilt reveal reveal-d1 bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1">
+        <div class="h-44 overflow-hidden"><img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop" alt="Team reviewing work together" class="w-full h-full object-cover"></div>
+        <div class="p-7"><h3 class="font-display text-xl mb-2">Cards for every team</h3><p class="text-stone text-sm leading-relaxed">Issue physical and virtual cards instantly, with spend limits and controls set per employee or project.</p></div>
+      </div>
+      <div class="tilt reveal reveal-d2 bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1">
+        <div class="h-44 overflow-hidden"><img src="https://images.unsplash.com/photo-1573497491208-6b1acb260507?q=80&w=1200&auto=format&fit=crop" alt="Two people shaking hands" class="w-full h-full object-cover"></div>
+        <div class="p-7"><h3 class="font-display text-xl mb-2">Dedicated IBANs</h3><p class="text-stone text-sm leading-relaxed">Get local account details in the markets you sell into, so customers can pay you like a local business.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how" class="py-20 sm:py-28 lg:py-32 bg-white">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <div class="max-w-xl mb-16 sm:mb-24">
+      <h2 class="reveal font-display font-medium text-3xl sm:text-4xl tracking-tight">From application to your first transfer.</h2>
+      <p class="reveal reveal-d1 mt-4 text-stone leading-relaxed">Four steps, under four minutes, no branch visit required.</p>
+    </div>
+    <div class="reveal relative grid sm:grid-cols-4 gap-10 sm:gap-6">
+      <div class="hidden sm:block absolute top-6 left-[12%] right-[12%] h-px bg-ink/10">
+        <div class="connector h-full bg-emerald"></div>
+      </div>
+      <div class="relative flex sm:block items-start gap-5 sm:gap-0">
+        <div class="w-12 h-12 shrink-0 rounded-full bg-emerald text-white flex items-center justify-center font-display relative z-10">1</div>
+        <div class="sm:mt-5"><h3 class="font-display text-lg sm:mt-0 mb-2">Verify your business</h3><p class="text-stone text-sm leading-relaxed">Documents checked digitally in minutes.</p></div>
+      </div>
+      <div class="relative flex sm:block items-start gap-5 sm:gap-0">
+        <div class="w-12 h-12 shrink-0 rounded-full bg-emerald text-white flex items-center justify-center font-display relative z-10">2</div>
+        <div class="sm:mt-5"><h3 class="font-display text-lg sm:mt-0 mb-2">Get your IBAN</h3><p class="text-stone text-sm leading-relaxed">Ready to receive before your cards ship.</p></div>
+      </div>
+      <div class="relative flex sm:block items-start gap-5 sm:gap-0">
+        <div class="w-12 h-12 shrink-0 rounded-full bg-emerald text-white flex items-center justify-center font-display relative z-10">3</div>
+        <div class="sm:mt-5"><h3 class="font-display text-lg sm:mt-0 mb-2">Issue your cards</h3><p class="text-stone text-sm leading-relaxed">Spin up virtual cards for the whole team.</p></div>
+      </div>
+      <div class="relative flex sm:block items-start gap-5 sm:gap-0">
+        <div class="w-12 h-12 shrink-0 rounded-full bg-emerald text-white flex items-center justify-center font-display relative z-10">4</div>
+        <div class="sm:mt-5"><h3 class="font-display text-lg sm:mt-0 mb-2">Send or convert</h3><p class="text-stone text-sm leading-relaxed">Move money across 60 countries.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECURITY ============ -->
+<section class="relative py-20 sm:py-28 lg:py-32 bg-navy text-white overflow-hidden">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8 grid lg:grid-cols-3 gap-10">
+    <div class="reveal lg:col-span-1">
+      <h2 class="font-display font-medium text-3xl tracking-tight mb-4">Built like a vault, runs like software.</h2>
+      <p class="text-white/70 leading-relaxed">Every layer of PrimePay is designed around a simple idea: your money should be boring to protect and exciting to use.</p>
+    </div>
+    <div class="lg:col-span-2 grid sm:grid-cols-3 gap-8">
+      <div class="reveal">
+        <svg class="icon-draw" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FE3B4" stroke-width="1.6"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3 class="font-display text-lg mt-4 mb-2">Segregated funds</h3><p class="text-white/65 text-sm leading-relaxed">Held with licensed institutions, fully separate from PrimePay's own accounts.</p>
+      </div>
+      <div class="reveal reveal-d1">
+        <svg class="icon-draw" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FE3B4" stroke-width="1.6"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        <h3 class="font-display text-lg mt-4 mb-2">Instant lock controls</h3><p class="text-white/65 text-sm leading-relaxed">Freeze any card or account with one tap, from anywhere.</p>
+      </div>
+      <div class="reveal reveal-d2">
+        <svg class="icon-draw" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FE3B4" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l3 2"/></svg>
+        <h3 class="font-display text-lg mt-4 mb-2">Real-time monitoring</h3><p class="text-white/65 text-sm leading-relaxed">Every transaction screened for fraud before it settles.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GLOBAL REACH ============ -->
+<section id="reach" class="relative py-20 sm:py-28 lg:py-32 bg-navy2 text-white overflow-hidden">
+  <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1800&auto=format&fit=crop" alt="Earth from space at night" class="parallax-img absolute inset-0 w-full h-full object-cover opacity-25" id="reachImg">
+  <div class="absolute inset-0 bg-gradient-to-b from-navy2 via-navy2/90 to-navy2"></div>
+  <div class="relative mx-auto max-w-6xl px-5 sm:px-8">
+    <div class="max-w-xl mb-14 sm:mb-20">
+      <h2 class="reveal font-display font-medium text-3xl sm:text-4xl tracking-tight">Built to operate wherever your business does.</h2>
+      <p class="reveal reveal-d1 mt-4 text-white/70 leading-relaxed">Send, receive, and hold money across the countries your customers and suppliers are actually in.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 text-center sm:text-left">
+      <div class="reveal"><p class="font-display text-5xl text-mint tick" data-count="2.4">0</p><p class="text-white/70 mt-2 text-sm">Million accounts opened</p></div>
+      <div class="reveal reveal-d1"><p class="font-display text-5xl text-mint"><span class="tick" data-count="18">0</span>B</p><p class="text-white/70 mt-2 text-sm">Moved through PrimePay yearly</p></div>
+      <div class="reveal reveal-d2"><p class="font-display text-5xl text-mint"><span class="tick" data-count="60">0</span>+</p><p class="text-white/70 mt-2 text-sm">Countries reached</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="py-20 sm:py-28 lg:py-32">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <div class="max-w-xl mb-14 sm:mb-20 mx-auto text-center">
+      <h2 class="reveal font-display font-medium text-3xl sm:text-4xl tracking-tight">Plans that grow with you.</h2>
+      <p class="reveal reveal-d1 mt-4 text-stone leading-relaxed">No hidden fees, cancel any time.</p>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-6 sm:gap-8 items-start">
+      <div class="reveal bg-white rounded-3xl p-8 shadow-sm">
+        <h3 class="font-display text-xl mb-1">Starter</h3><p class="text-stone text-sm mb-6">For new businesses</p>
+        <p class="font-display text-4xl mb-6">$0<span class="text-base text-stone">/mo</span></p>
+        <ul class="text-sm text-stone space-y-3 mb-8"><li>1 IBAN, 3 currencies</li><li>2 virtual cards</li><li>Email support</li></ul>
+        <a href="#cta" class="btn block text-center border border-ink/15 rounded-full py-3 font-medium hover:bg-ink/5">Get started</a>
+      </div>
+      <div class="reveal reveal-d1 badge-pulse bg-navy text-white rounded-3xl p-8 shadow-xl relative sm:-translate-y-3">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-mint text-navy text-xs font-medium px-3 py-1 rounded-full">Most popular</span>
+        <h3 class="font-display text-xl mb-1">Growth</h3><p class="text-white/60 text-sm mb-6">For scaling teams</p>
+        <p class="font-display text-4xl mb-6">$39<span class="text-base text-white/60">/mo</span></p>
+        <ul class="text-sm text-white/75 space-y-3 mb-8"><li>5 IBANs, 40+ currencies</li><li>Unlimited virtual cards</li><li>Dedicated account manager</li></ul>
+        <a href="#cta" class="btn block text-center bg-emerald rounded-full py-3 font-medium hover:bg-emerald2">Get started</a>
+      </div>
+      <div class="reveal reveal-d2 bg-white rounded-3xl p-8 shadow-sm">
+        <h3 class="font-display text-xl mb-1">Scale</h3><p class="text-stone text-sm mb-6">For global operations</p>
+        <p class="font-display text-4xl mb-6">Custom</p>
+        <ul class="text-sm text-stone space-y-3 mb-8"><li>Unlimited IBANs & currencies</li><li>Custom card programs</li><li>Priority support & SLAs</li></ul>
+        <a href="#cta" class="btn block text-center border border-ink/15 rounded-full py-3 font-medium hover:bg-ink/5">Talk to sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CUSTOMER PROOF ============ -->
+<section id="proof" class="py-20 sm:py-28 lg:py-32 bg-white">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <svg class="reveal mx-auto mb-10 text-emerald/40" width="42" height="32" viewBox="0 0 48 36" fill="currentColor"><path d="M0 36V20C0 8 7 1 18 0v8c-6 1-9 5-9 11h9v17H0Zm27 0V20c0-12 7-19 18-20v8c-6 1-9 5-9 11h9v17H27Z"/></svg>
+    <div class="grid sm:grid-cols-3 gap-6 sm:gap-8">
+      <div class="reveal bg-ivory rounded-3xl p-7">
+        <p class="leading-relaxed mb-6">"We run payroll in four currencies out of one account. It replaced three separate banking relationships."</p>
+        <div class="flex items-center gap-3"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&auto=format&fit=crop" alt="Dara Osei" class="w-10 h-10 rounded-full object-cover"><p class="text-sm text-stone">Dara Osei<br><span class="text-stone/70">Halcyon Labs</span></p></div>
+      </div>
+      <div class="reveal reveal-d1 bg-ivory rounded-3xl p-7">
+        <p class="leading-relaxed mb-6">"Opening local accounts in three new markets took an afternoon, not a quarter."</p>
+        <div class="flex items-center gap-3"><img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=200&auto=format&fit=crop" alt="Ines Marchetti" class="w-10 h-10 rounded-full object-cover"><p class="text-sm text-stone">Ines Marchetti<br><span class="text-stone/70">Vestra</span></p></div>
+      </div>
+      <div class="reveal reveal-d2 bg-ivory rounded-3xl p-7">
+        <p class="leading-relaxed mb-6">"Card controls alone saved our finance team hours every week during audits."</p>
+        <div class="flex items-center gap-3"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&auto=format&fit=crop" alt="Tomás Reyes" class="w-10 h-10 rounded-full object-cover"><p class="text-sm text-stone">Tomás Reyes<br><span class="text-stone/70">Kadence</span></p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="py-20 sm:py-28 lg:py-32">
+  <div class="mx-auto max-w-3xl px-5 sm:px-8">
+    <h2 class="reveal font-display font-medium text-3xl sm:text-4xl tracking-tight mb-12 text-center">Questions, answered.</h2>
+    <div class="reveal space-y-3">
+      <details class="group bg-white rounded-2xl p-5" open>
+        <summary class="flex items-center justify-between font-medium"><span>How long does onboarding take?</span><span class="shrink-0 ml-4 w-6 h-6 rounded-full border border-ink/15 flex items-center justify-center transition-transform group-open:rotate-45">+</span></summary>
+        <p class="text-stone text-sm leading-relaxed mt-3">Most businesses are verified and holding an IBAN within four minutes of starting the application.</p>
+      </details>
+      <details class="group bg-white rounded-2xl p-5">
+        <summary class="flex items-center justify-between font-medium"><span>Which currencies can I hold?</span><span class="shrink-0 ml-4 w-6 h-6 rounded-full border border-ink/15 flex items-center justify-center transition-transform group-open:rotate-45">+</span></summary>
+        <p class="text-stone text-sm leading-relaxed mt-3">Over 40 currencies, converted at the real exchange rate with no hidden markup.</p>
+      </details>
+      <details class="group bg-white rounded-2xl p-5">
+        <summary class="flex items-center justify-between font-medium"><span>Is my money protected?</span><span class="shrink-0 ml-4 w-6 h-6 rounded-full border border-ink/15 flex items-center justify-center transition-transform group-open:rotate-45">+</span></summary>
+        <p class="text-stone text-sm leading-relaxed mt-3">Funds are held with licensed, regulated institutions and kept fully segregated from PrimePay's own accounts.</p>
+      </details>
+      <details class="group bg-white rounded-2xl p-5">
+        <summary class="flex items-center justify-between font-medium"><span>Can I cancel anytime?</span><span class="shrink-0 ml-4 w-6 h-6 rounded-full border border-ink/15 flex items-center justify-center transition-transform group-open:rotate-45">+</span></summary>
+        <p class="text-stone text-sm leading-relaxed mt-3">Yes, there's no lock-in on any plan, including Growth and Scale.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section id="cta" class="relative py-24 sm:py-32 overflow-hidden">
+  <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1800&auto=format&fit=crop" alt="Modern office building exterior" class="absolute inset-0 w-full h-full object-cover">
+  <div class="absolute inset-0 bg-gradient-to-t from-emerald via-emerald/85 to-navy/70"></div>
+  <div class="relative mx-auto max-w-3xl px-5 sm:px-8 text-center">
+    <h2 class="reveal font-display font-medium text-white text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-5">Your business account is four minutes away.</h2>
+    <p class="reveal reveal-d1 text-white/85 mb-9 max-w-md mx-auto">No paperwork, no branch visit, no minimum balance to keep the lights on.</p>
+    <a href="register.html" class="reveal reveal-d2 btn inline-block bg-white text-emerald px-8 py-4 rounded-full font-medium hover:bg-mint">Open an account</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-navy text-white/70 py-14">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8 flex flex-col md:flex-row justify-between gap-10">
+    <div>
+      <p class="font-display text-white text-lg mb-4">PrimePay</p>
+      <p class="text-sm max-w-xs leading-relaxed">Business banking that keeps up with how companies actually move money.</p>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-10 text-sm">
+      <div><p class="text-white mb-3">Product</p><a href="#features" class="block mb-2 hover:text-white transition-colors">Features</a><a href="#pricing" class="block hover:text-white transition-colors">Pricing</a></div>
+      <div><p class="text-white mb-3">Company</p><a href="#" class="block mb-2 hover:text-white transition-colors">About</a><a href="#" class="block hover:text-white transition-colors">Careers</a></div>
+      <div><p class="text-white mb-3">Legal</p><a href="#" class="block mb-2 hover:text-white transition-colors">Terms</a><a href="#" class="block hover:text-white transition-colors">Privacy</a></div>
+    </div>
+  </div>
+  <div class="mx-auto max-w-6xl px-5 sm:px-8 mt-12 pt-6 border-t border-white/10 text-xs">
+    © 2026 PrimePay. All rights reserved.
+  </div>
+</footer>
+
+<script>
+  /* ---- Preloader ---- */
+  const preloader = document.getElementById('preloader');
+  const preloaderBar = document.getElementById('preloaderBar');
+  requestAnimationFrame(() => { preloaderBar.style.width = '100%'; });
+  window.addEventListener('load', () => {
+    setTimeout(() => { preloader.classList.add('hide'); document.body.classList.remove('locked'); }, 1500);
+  });
+  setTimeout(() => { preloader.classList.add('hide'); document.body.classList.remove('locked'); }, 3200);
+
+  /* ---- Mobile drawer ---- */
+  const drawer = document.getElementById('mobileDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const hamburger = document.getElementById('hamburger');
+  const closeBtn = document.getElementById('closeDrawer');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('show');
+    hamburger.classList.add('open');
+    hamburger.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('locked');
+    // focus first link in drawer
+    setTimeout(() => { drawer.querySelector('a, button')?.focus(); }, 60);
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('show');
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('locked');
+  }
+  hamburger.addEventListener('click', () => {
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  // close on drawer link click
+  document.querySelectorAll('[data-close-drawer]').forEach(el => el.addEventListener('click', closeDrawer));
+  // close on Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
+
+  /* ---- Nav solid-on-scroll ---- */
+  const nav = document.getElementById('nav');
+  const logo = document.getElementById('logo');
+  const navlinks = document.getElementById('navlinks');
+  const loginlink = document.getElementById('loginlink');
+  function onScroll(){
+    const solid = window.scrollY > 40;
+    nav.classList.toggle('bg-ivory/95', solid);
+    nav.classList.toggle('backdrop-blur', solid);
+    nav.classList.toggle('shadow-md', solid);
+    [logo, navlinks, loginlink].forEach(el => {
+      if (!el) return;
+      el.classList.toggle('text-ink', solid);
+      el.classList.toggle('text-white', !solid);
+    });
+    // hamburger colour
+    hamburger.classList.toggle('text-ink', solid);
+    hamburger.classList.toggle('text-white', !solid);
+  }
+  [logo, navlinks, loginlink].forEach(el => { if (el) el.classList.add('text-white'); });
+  hamburger.classList.add('text-white');
+  document.addEventListener('scroll', onScroll, { passive:true }); onScroll();
+
+  /* ---- Scroll progress ---- */
+  const scrollBar = document.getElementById('scrollBar');
+  function onProgress(){
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    scrollBar.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+  }
+  document.addEventListener('scroll', onProgress, { passive:true }); onProgress();
+
+  /* ---- Reveal on scroll ---- */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* ---- Counters ---- */
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target, target = parseFloat(el.dataset.count), decimals = (el.dataset.count.split('.')[1] || '').length;
+      const dur = 1400, t0 = performance.now();
+      function step(t){ const p = Math.min((t - t0) / dur, 1), eased = 1 - Math.pow(1 - p, 3); el.textContent = (target * eased).toFixed(decimals); if (p < 1) requestAnimationFrame(step); else el.textContent = target.toFixed(decimals); }
+      requestAnimationFrame(step); countIO.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.tick').forEach(el => countIO.observe(el));
+
+  /* ---- Parallax ---- */
+  const heroImg = document.getElementById('heroImg'), reachImg = document.getElementById('reachImg');
+  function onParallax(){
+    const y = window.scrollY;
+    if (heroImg) heroImg.style.transform = `translateY(${y * 0.25}px) scale(1.08)`;
+    if (reachImg){ const rect = reachImg.parentElement.getBoundingClientRect(); reachImg.style.transform = `translateY(${(window.innerHeight - rect.top) * 0.08}px) scale(1.05)`; }
+  }
+  document.addEventListener('scroll', onParallax, { passive:true }); onParallax();
+
+  /* ---- Tilt + cursor glow (desktop only) ---- */
+  if (window.matchMedia('(hover: hover)').matches){
+    document.querySelectorAll('.tilt').forEach(card => {
+      card.addEventListener('mousemove', (e) => { const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; card.style.transform = `perspective(700px) rotateY(${x*6}deg) rotateX(${-y*6}deg) translateY(-4px)`; });
+      card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+    });
+    const hero = document.getElementById('top'), glow = document.getElementById('heroGlow');
+    if (hero && glow) hero.addEventListener('mousemove', (e) => { const r = hero.getBoundingClientRect(); glow.style.left = (e.clientX - r.left - 260) + 'px'; glow.style.top = (e.clientY - r.top - 260) + 'px'; });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log in — PrimePay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ivory: '#F7F4EC', ink: '#0F1210', navy: '#0B1E23', navy2: '#123239',
+          emerald: '#1C7C54', emerald2: '#2FA173', mint: '#8FE3B4', gold: '#C9A227', stone: '#6E6A5E',
+          danger: '#C6473F', dangerBg: '#FBEAE8',
+        },
+        fontFamily: { display: ['"Fraunces"', 'serif'], body: ['Manrope', 'sans-serif'] },
+        keyframes: {
+          spin: { '100%': { transform: 'rotate(360deg)' } },
+          fadeUp: { '0%': { opacity: '0', transform: 'translateY(14px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          floatY: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+          slideUp: { '0%': { opacity: '0', transform: 'translateY(24px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        },
+        animation: {
+          spinslow: 'spin 1s linear infinite',
+          fadeUp: 'fadeUp .6s cubic-bezier(.16,1,.3,1) both',
+          slideUp: 'slideUp .3s cubic-bezier(.19,1,.22,1) both',
+          float: 'floatY 5s ease-in-out infinite',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html{ scroll-behavior:smooth; }
+  body{ background:#F7F4EC; }
+  ::selection{ background:#1C7C54; color:#fff; }
+  a:focus-visible, button:focus-visible, input:focus-visible{ outline:2px solid #1C7C54; outline-offset:2px; border-radius:4px; }
+
+  .field{ width:100%; background:#fff; border:1.5px solid rgba(15,18,16,.12); border-radius:12px; padding:.85rem 1rem; font-size:14.5px; color:#0F1210; transition:border-color .2s ease, box-shadow .2s ease; }
+  .field::placeholder{ color:#6E6A5E; opacity:.7; }
+  .field:focus{ outline:none; border-color:#1C7C54; box-shadow:0 0 0 3px rgba(28,124,84,.14); }
+  .field.err{ border-color:#C6473F; background:#FBEAE8; }
+  .label{ font-size:12.5px; font-weight:600; color:#0F1210; margin-bottom:7px; display:block; }
+  .error-msg{ font-size:11.5px; color:#C6473F; margin-top:4px; display:none; }
+  .error-msg.show{ display:block; }
+
+  .btn-primary{ position:relative; overflow:hidden; z-index:0; background:#1C7C54; color:#fff; border-radius:999px; transition:transform .2s cubic-bezier(.34,1.56,.64,1), background-color .2s; }
+  .btn-primary:hover{ background:#2FA173; }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.55; cursor:not-allowed; }
+
+  .card{ background:#fff; border:1px solid rgba(15,18,16,.07); border-radius:24px; box-shadow:0 30px 70px -40px rgba(15,18,16,.35); }
+
+  #preloader{ background: radial-gradient(120% 120% at 50% 0%, #123239 0%, #0B1E23 60%, #0F1210 100%); }
+  #pageLoader{ background:#0B1E23; transition: opacity .6s ease, visibility .6s ease; }
+  #pageLoader.hide{ opacity:0; visibility:hidden; }
+  .pl-letter{ display:inline-block; transform:translateY(115%); opacity:0; animation: plIn .7s cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes plIn{ to{ transform:translateY(0); opacity:1; } }
+  #pageLoaderBar{ transition: width 1.4s cubic-bezier(.65,0,.35,1); }
+
+  .modal-backdrop{ background:rgba(11,30,35,.55); backdrop-filter:blur(3px); }
+
+  .parallax-img{ will-change: transform; }
+
+  @media (prefers-reduced-motion: reduce){
+    #preloader *, #pageLoader{ animation:none !important; }
+    #pageLoader{ display:none; }
+    .pl-letter{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body class="bg-ivory text-ink font-body antialiased min-h-screen">
+
+<!-- ============ Page entrance preloader ============ -->
+<div id="pageLoader" class="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-7">
+  <div class="flex overflow-hidden font-display text-white text-3xl sm:text-4xl tracking-tight" aria-hidden="true">
+    <span class="pl-letter" style="animation-delay:.05s">P</span><span class="pl-letter" style="animation-delay:.10s">r</span><span class="pl-letter" style="animation-delay:.15s">i</span><span class="pl-letter" style="animation-delay:.20s">m</span><span class="pl-letter" style="animation-delay:.25s">e</span><span class="pl-letter text-mint" style="animation-delay:.32s">P</span><span class="pl-letter text-mint" style="animation-delay:.37s">a</span><span class="pl-letter text-mint" style="animation-delay:.42s">y</span>
+  </div>
+  <div class="w-40 h-[2px] bg-white/15 overflow-hidden rounded-full">
+    <div id="pageLoaderBar" class="h-full bg-mint w-0"></div>
+  </div>
+</div>
+
+<!-- ============ Sign-in preloader ============ -->
+<div id="preloader" class="fixed inset-0 z-[100] hidden flex-col items-center justify-center gap-6 px-6 text-center">
+  <p class="font-display font-medium text-white text-2xl animate-fadeUp">Prime<span class="text-mint">Pay</span></p>
+  <div class="relative flex items-center gap-3">
+    <svg class="animate-spinslow" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.3)" stroke-width="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#8FE3B4" stroke-width="3" stroke-linecap="round"/></svg>
+    <p id="preloaderText" class="text-white/85 text-[13px] font-medium">Signing you in…</p>
+  </div>
+</div>
+
+<!-- ============ Header ============ -->
+<header class="relative z-10 px-5 sm:px-6 lg:px-10 pt-6">
+  <div class="mx-auto max-w-6xl flex items-center justify-between">
+    <a href="index.html" class="font-display font-semibold text-lg tracking-tight">Prime<span class="text-emerald">Pay</span></a>
+    <a href="register.html" class="text-sm text-ink/70 hover:text-emerald transition-colors">New to PrimePay? <span class="font-semibold text-emerald">Create an account</span></a>
+  </div>
+</header>
+
+<!-- ============ Main ============ -->
+<main class="relative min-h-[88vh] grid lg:grid-cols-2">
+
+  <!-- brand panel (desktop only) -->
+  <div class="hidden lg:block relative overflow-hidden bg-navy">
+    <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1400&auto=format&fit=crop" alt="City skyline at dusk" class="absolute inset-0 w-full h-full object-cover opacity-50">
+    <div class="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/30"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-navy/40"></div>
+    <div class="relative h-full flex flex-col justify-end px-12 xl:px-16 py-16">
+      <p class="text-mint text-sm tracking-wide mb-4">Business banking, without the border fees</p>
+      <p class="font-display font-medium text-white text-3xl xl:text-4xl leading-tight max-w-sm">Log back in to keep your business moving.</p>
+    </div>
+    <div class="animate-float hidden xl:block absolute right-10 top-16 bg-white/95 backdrop-blur rounded-2xl px-6 py-5 shadow-2xl w-52">
+      <p class="text-stone text-xs mb-1">Transferred today</p>
+      <p class="font-display text-2xl text-navy">$18.4M</p>
+      <p class="text-emerald text-xs mt-1">↑ across 42 currencies</p>
+    </div>
+  </div>
+
+  <!-- form panel -->
+  <div class="flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16">
+    <div class="w-full max-w-md">
+
+      <div class="text-center mb-8 animate-fadeUp">
+        <p class="font-display font-semibold text-3xl tracking-tight mb-4">Prime<span class="text-emerald">Pay</span></p>
+        <h1 class="font-display font-medium text-2xl sm:text-3xl tracking-tight">Welcome back</h1>
+        <p class="text-stone mt-2 text-[14.5px]">Log in to manage your PrimePay account.</p>
+      </div>
+
+      <form id="loginForm" class="card p-6 sm:p-8 animate-fadeUp" novalidate>
+        <div class="mb-4">
+          <label class="label">Email address</label>
+          <input required id="loginEmail" type="email" class="field" placeholder="you@company.com" />
+          <p class="error-msg" data-err="loginEmail">Enter a valid email address.</p>
+        </div>
+        <div class="mb-2">
+          <label class="label">Password</label>
+          <div class="relative">
+            <input required id="loginPassword" type="password" class="field pr-11" placeholder="••••••••" />
+            <button type="button" id="togglePw" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <p class="error-msg" data-err="loginPassword">Please enter your password.</p>
+        </div>
+        <div class="flex justify-end mb-5">
+          <button type="button" id="forgotBtn" class="text-[12.5px] font-semibold text-emerald hover:text-emerald2 transition-colors">Forgot password?</button>
+        </div>
+
+        <p id="loginError" class="hidden text-[13px] text-danger bg-dangerBg rounded-lg px-4 py-3 mb-5"></p>
+
+        <button type="submit" id="loginSubmitBtn" class="btn-primary font-medium text-[15px] py-3.5 w-full">Log in</button>
+      </form>
+
+      <p class="text-center text-stone text-[13px] mt-8">Are you an administrator? <a href="adminlogin.html" class="text-emerald font-semibold">Go to admin login</a></p>
+    </div>
+  </div>
+</main>
+
+<!-- ============ Forgot password modal ============ -->
+<div id="forgotModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+  <div class="card p-6 sm:p-8 w-full max-w-[400px] animate-slideUp relative">
+    <button id="forgotCloseBtn" class="absolute top-5 right-5 text-stone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+
+    <div id="forgotFormWrap">
+      <p class="font-display font-semibold text-lg mb-1">Reset your password</p>
+      <p class="text-stone text-[13.5px] mb-5">Enter the email on your account and we'll send you a link to reset your password.</p>
+      <div class="mb-2">
+        <label class="label">Email address</label>
+        <input id="forgotEmail" type="email" class="field" placeholder="you@company.com" />
+        <p class="error-msg" data-err="forgotEmail">Enter a valid email address.</p>
+      </div>
+      <p id="forgotError" class="hidden text-[13px] text-danger bg-dangerBg rounded-lg px-4 py-3 mb-4 mt-3"></p>
+      <button id="forgotSubmitBtn" class="btn-primary font-medium text-[14.5px] py-3.5 w-full mt-4">Send reset link</button>
+    </div>
+
+    <div id="forgotSuccessWrap" class="hidden text-center">
+      <div class="w-12 h-12 rounded-full bg-[#EAF6EF] flex items-center justify-center mx-auto mb-4">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C7C54" stroke-width="2"><path d="M4 12l6 6L20 6"/></svg>
+      </div>
+      <p class="font-display font-semibold text-lg mb-1.5">Check your inbox</p>
+      <p class="text-stone text-[13.5px] mb-6">If an account exists for <span id="forgotSentEmail" class="font-semibold text-ink"></span>, a reset link is on its way.</p>
+      <button id="forgotDoneBtn" class="btn-primary font-medium text-[14.5px] py-3.5 w-full">Back to log in</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Entrance preloader (independent of auth logic)
+  const pageLoader = document.getElementById('pageLoader');
+  const pageLoaderBar = document.getElementById('pageLoaderBar');
+  requestAnimationFrame(() => { pageLoaderBar.style.width = '100%'; });
+  window.addEventListener('load', () => setTimeout(() => pageLoader.classList.add('hide'), 1300));
+  setTimeout(() => pageLoader.classList.add('hide'), 2800);
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+ const firebaseConfig = {
+  apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
+  authDomain: "prime-d3446.firebaseapp.com",
+  projectId: "prime-d3446",
+  storageBucket: "prime-d3446.firebasestorage.app",
+  messagingSenderId: "13799287511",
+  appId: "1:13799287511:web:c2ccac1eddb7c0b5a4de92"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const $ = (id) => document.getElementById(id);
+
+  function showPreloader(text) {
+    $("preloaderText").textContent = text || "Signing you in…";
+    $("preloader").classList.remove("hidden");
+    $("preloader").classList.add("flex");
+  }
+  function hidePreloader() {
+    $("preloader").classList.add("hidden");
+    $("preloader").classList.remove("flex");
+  }
+
+  // Remain on the login page until the user submits their credentials.
+
+  /* ---------- password visibility ---------- */
+  $("togglePw").addEventListener("click", () => {
+    const input = $("loginPassword");
+    input.type = input.type === "password" ? "text" : "password";
+  });
+
+  /* ---------- login ---------- */
+  function setErr(id, show) {
+    const input = $(id);
+    const msg = document.querySelector(`.error-msg[data-err="${id}"]`);
+    if (input) input.classList.toggle("err", !!show);
+    if (msg) msg.classList.toggle("show", !!show);
+  }
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
+    $("loginError").classList.add("hidden");
+
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    setErr("loginEmail", !emailValid);
+    setErr("loginPassword", !password);
+    if (!emailValid || !password) return;
+
+    $("loginSubmitBtn").disabled = true;
+    showPreloader("Signing you in…");
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      hidePreloader();
+      $("loginSubmitBtn").disabled = false;
+      const messages = {
+        "auth/invalid-credential": "That email or password doesn't look right.",
+        "auth/user-not-found": "No account found with that email.",
+        "auth/wrong-password": "That password doesn't look right.",
+        "auth/too-many-requests": "Too many attempts — please wait a moment and try again.",
+        "auth/invalid-email": "That email address doesn't look right.",
+      };
+      const errEl = $("loginError");
+      errEl.textContent = messages[err.code] || "Couldn't sign you in — please try again.";
+      errEl.classList.remove("hidden");
+    }
+  });
+
+  /* ---------- forgot password ---------- */
+  function openForgot() {
+    $("forgotModal").classList.remove("hidden");
+    $("forgotModal").classList.add("flex");
+    $("forgotFormWrap").classList.remove("hidden");
+    $("forgotSuccessWrap").classList.add("hidden");
+    $("forgotError").classList.add("hidden");
+    $("forgotEmail").value = $("loginEmail").value.trim();
+    setTimeout(() => $("forgotEmail").focus(), 60);
+  }
+  function closeForgot() {
+    $("forgotModal").classList.add("hidden");
+    $("forgotModal").classList.remove("flex");
+  }
+  $("forgotBtn").addEventListener("click", openForgot);
+  $("forgotCloseBtn").addEventListener("click", closeForgot);
+  $("forgotModal").addEventListener("click", (e) => { if (e.target.id === "forgotModal") closeForgot(); });
+  $("forgotDoneBtn").addEventListener("click", closeForgot);
+
+  $("forgotSubmitBtn").addEventListener("click", async () => {
+    const email = $("forgotEmail").value.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    setErr("forgotEmail", !emailValid);
+    $("forgotError").classList.add("hidden");
+    if (!emailValid) return;
+
+    $("forgotSubmitBtn").disabled = true;
+    $("forgotSubmitBtn").textContent = "Sending…";
+    try {
+      await sendPasswordResetEmail(auth, email);
+      $("forgotSentEmail").textContent = email;
+      $("forgotFormWrap").classList.add("hidden");
+      $("forgotSuccessWrap").classList.remove("hidden");
+    } catch (err) {
+      // Never confirm/deny whether an email exists — show the same generic success state.
+      if (err.code === "auth/invalid-email") {
+        $("forgotError").textContent = "That email address doesn't look right.";
+        $("forgotError").classList.remove("hidden");
+      } else {
+        $("forgotSentEmail").textContent = email;
+        $("forgotFormWrap").classList.add("hidden");
+        $("forgotSuccessWrap").classList.remove("hidden");
+      }
+    }
+    $("forgotSubmitBtn").disabled = false;
+    $("forgotSubmitBtn").textContent = "Send reset link";
+  });
+</script>
+</body>
+</html>
