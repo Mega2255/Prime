@@ -189,7 +189,7 @@
         </div>
       </section>
 
-      <!-- ===== Transaction sections ===== -->
+      <!-- ===== Deposits ===== -->
       <section id="sec-deposits" class="hidden">
         <h1 class="text-[24px] font-serif font-medium mb-1">Deposits</h1>
         <p class="text-muted2 text-[14px] mb-4">Review and approve incoming deposits.</p>
@@ -199,6 +199,7 @@
         </div>
       </section>
 
+      <!-- ===== Transfers ===== -->
       <section id="sec-transfers" class="hidden">
         <h1 class="text-[24px] font-serif font-medium mb-1">Transfers</h1>
         <p class="text-muted2 text-[14px] mb-4">Review and approve outgoing local and international transfers.</p>
@@ -289,12 +290,17 @@
       <button id="umDeactivateBtn" class="btn-ghost font-medium text-[13.5px] py-2.5 w-full hidden">Set back to inactive</button>
     </div>
 
+    <!-- Fund / Adjust balance — with sender name field -->
     <div class="surface-2 p-4 mb-4">
-      <p class="font-serif text-[15px] mb-3">Adjust balance</p>
+      <p class="font-serif text-[15px] mb-3">Fund / Adjust balance</p>
       <div class="flex gap-2 mb-3">
         <input id="umAdjustAmount" type="number" min="0.01" step="0.01" class="input-field" placeholder="0.00" />
-        <select id="umAdjustDirection" class="input-field max-w-[120px]"><option value="credit">Credit</option><option value="debit">Debit</option></select>
+        <select id="umAdjustDirection" class="input-field max-w-[120px]">
+          <option value="credit">Credit</option>
+          <option value="debit">Debit</option>
+        </select>
       </div>
+      <input id="umAdjustSender" class="input-field mb-3" placeholder="Sender name (e.g. John Doe, Wire Transfer Inc.)" />
       <input id="umAdjustNote" class="input-field mb-3" placeholder="Note (optional, e.g. bonus, correction)" />
       <button id="umAdjustBtn" class="btn-primary font-medium text-[13.5px] py-2.5 w-full">Apply adjustment</button>
     </div>
@@ -317,7 +323,7 @@
       </div>
     </div>
 
-    <!-- Security question (reference only — not currently used in the verification flow) -->
+    <!-- Security question -->
     <div class="surface-2 p-4 mb-4">
       <p class="font-serif text-[15px] mb-1">Security question <span class="text-muted2 font-normal">(reference only)</span></p>
       <p class="help-sm mb-3">Selected by the user at registration. It isn't part of the current transfer verification flow (that now uses the five codes above), but is kept here for support reference if the user ever needs identity confirmation.</p>
@@ -349,7 +355,6 @@
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-  // Same Firebase project as the PrimePay registration page / user dashboard.
   const firebaseConfig = {
     apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
     authDomain: "prime-d3446.firebaseapp.com",
@@ -367,10 +372,10 @@
   const db = getDatabase(app);
   const $ = (id) => document.getElementById(id);
 
-  let allUsers = {};        // uid -> user object
-  let allTx = [];           // flat array of {id, ...tx}
+  let allUsers = {};
+  let allTx = [];
   let activeUid = null;
-  let depositSettings = {}; // settings/deposit from Firebase (bank + crypto coins)
+  let depositSettings = {};
 
   /* ---------- helpers ---------- */
   function showToast(message, tone = "ink") {
@@ -382,23 +387,27 @@
     wrap.appendChild(el);
     setTimeout(() => { el.style.transition = "opacity .3s ease, transform .3s ease"; el.style.opacity = "0"; el.style.transform = "translateY(8px)"; setTimeout(() => el.remove(), 300); }, 3200);
   }
+
   const CURRENCY_SYMBOLS = { USD:"$", EUR:"€", GBP:"£", NGN:"₦", GHS:"₵", KES:"KSh", ZAR:"R", EGP:"E£", XOF:"CFA", XAF:"FCFA", UGX:"USh", TZS:"TSh", MAD:"MAD", CAD:"$", AUD:"$", NZD:"$", INR:"₹", PKR:"₨", BDT:"৳", CNY:"¥", JPY:"¥", KRW:"₩", SGD:"$", THB:"฿", IDR:"Rp", PHP:"₱", VND:"₫", AED:"د.إ", SAR:"﷼", ILS:"₪", TRY:"₺", RUB:"₽", CHF:"CHF", SEK:"kr", NOK:"kr", DKK:"kr", PLN:"zł", BRL:"R$", MXN:"$", ARS:"$", COP:"$" };
+
   function fmtMoney(amount, code) {
     const symbol = CURRENCY_SYMBOLS[code] || "";
     const n = Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return `${symbol}${n}`;
   }
+
   function statusPill(status) {
     const map = { pending: ["pill-pending", "Pending"], approved: ["pill-approved", "Approved"], rejected: ["pill-rejected", "Rejected"] };
     const [cls, label] = map[status] || map.pending;
     return `<span class="pill ${cls}">${label}</span>`;
   }
+
   function userStatusPill(u) {
     if (u.suspended) return `<span class="pill pill-suspended">Suspended</span>`;
     if (!u.active) return `<span class="pill pill-pending">Pending</span>`;
     return `<span class="pill pill-active">Active</span>`;
   }
-  // Matches the `details` object shape each transaction type is created with on the user dashboard.
+
   function txDetailsSummary(tx) {
     const d = tx.details || {};
     if (tx.type === "deposit_bank") return d.reference ? `Ref: ${d.reference}` : "—";
@@ -406,6 +415,7 @@
     if (tx.type === "transfer_local") return `${d.accountName || ""} · ${d.bankName || ""} · ${d.accountNumber || ""}`;
     if (tx.type === "transfer_international") return `${d.recipientName || ""} · ${d.bankName || ""} (${d.recipientCountry || ""}) · SWIFT ${d.swift || "—"}`;
     if (tx.type === "withdrawal") return d.method === "paypal" ? `PayPal: ${d.paypalEmail || ""}` : d.method === "cashapp" ? `Cashtag: ${d.cashtag || ""}` : `${d.bankName || ""} · ${d.accountNumber || ""}`;
+    if (tx.type === "admin_adjustment") return d.senderName ? `From: ${d.senderName}` : (d.narration || "—");
     return "—";
   }
 
@@ -459,11 +469,13 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   document.querySelectorAll(".nav-item[data-section]").forEach((el) => el.addEventListener("click", () => goToSection(el.dataset.section)));
+
   function openDrawer() { $("sidebar").classList.remove("-translate-x-full"); $("drawerBackdrop").classList.remove("hidden"); }
   function closeDrawer() { $("sidebar").classList.add("-translate-x-full"); $("drawerBackdrop").classList.add("hidden"); }
   $("openDrawerBtn").addEventListener("click", openDrawer);
   $("closeDrawerBtn").addEventListener("click", closeDrawer);
   $("drawerBackdrop").addEventListener("click", closeDrawer);
+
   function syncSidebarForViewport() { if (window.innerWidth >= 1024) $("sidebar").classList.remove("-translate-x-full"); else $("sidebar").classList.add("-translate-x-full"); }
   window.addEventListener("resize", syncSidebarForViewport);
   syncSidebarForViewport();
@@ -520,13 +532,14 @@
     }).join("");
     wireActionButtons();
   }
+
   function setBadge(id, count) {
     const el = $(id);
     if (count > 0) { el.textContent = count; el.classList.remove("hidden"); } else { el.classList.add("hidden"); }
   }
-  // Matches the transaction `type` strings the user dashboard actually creates.
+
   function prettyType(type) {
-    const map = { deposit_bank: "Bank deposit", deposit_crypto: "Crypto deposit", transfer_local: "Local transfer", transfer_international: "International transfer", withdrawal: "Withdrawal", admin_adjustment: "Admin adjustment" };
+    const map = { deposit_bank: "Bank deposit", deposit_crypto: "Crypto deposit", transfer_local: "Local transfer", transfer_international: "International transfer", withdrawal: "Withdrawal", admin_adjustment: "Account funded" };
     return map[type] || type;
   }
 
@@ -555,17 +568,19 @@
   }
   $("userSearch").addEventListener("input", renderUsers);
 
-  /* ---------- per-category transaction tables ---------- */
+  /* ---------- transaction tables ---------- */
   function actionButtons(txId) {
     return `<div class="flex gap-2 justify-end">
       <button class="btn-mint text-[12px] font-bold uppercase tracking-[0.04em] px-3 py-1.5 tx-approve" data-tx="${txId}">Approve</button>
       <button class="btn-rose text-[12px] font-bold uppercase tracking-[0.04em] px-3 py-1.5 tx-reject" data-tx="${txId}">Reject</button>
     </div>`;
   }
+
   function actionOrStatus(tx) {
     if (tx.status === "pending") return actionButtons(tx.id);
     return `<span class="help-sm">Reviewed</span>`;
   }
+
   function wireActionButtons() {
     document.querySelectorAll(".tx-approve").forEach((btn) => btn.addEventListener("click", () => reviewTransaction(btn.dataset.tx, "approved")));
     document.querySelectorAll(".tx-reject").forEach((btn) => btn.addEventListener("click", () => reviewTransaction(btn.dataset.tx, "rejected")));
@@ -573,7 +588,6 @@
 
   function renderAllTxTables() {
     const deposits = allTx.filter((t) => t.type && t.type.startsWith("deposit"));
-    // The dashboard creates transfer_local and transfer_international — both live in one Transfers queue.
     const transfers = allTx.filter((t) => t.type === "transfer_local" || t.type === "transfer_international");
 
     $("depositsEmpty").classList.toggle("hidden", deposits.length > 0);
@@ -591,7 +605,7 @@
     wireActionButtons();
   }
 
-  /* ---------- approve / reject logic ---------- */
+  /* ---------- approve / reject ---------- */
   async function reviewTransaction(txId, decision) {
     const tx = allTx.find((t) => t.id === txId);
     if (!tx) return;
@@ -618,14 +632,10 @@
     }
   }
 
-  /* ---------- transfer verification code helpers ---------- */
-  function randomCode() {
-    return String(Math.floor(1000 + Math.random() * 9000)); // 4 digits, 1000–9999
-  }
+  /* ---------- code input helpers ---------- */
+  function randomCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
   function wireCodeInput(id) {
-    $(id).addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
-    });
+    $(id).addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); });
   }
   ["umImf", "umCot", "umVerification", "umAml", "umTax"].forEach(wireCodeInput);
 
@@ -647,6 +657,7 @@
     $("umSuspendBtn").classList.toggle("hidden", !!u.suspended);
     $("umUnsuspendBtn").classList.toggle("hidden", !u.suspended);
     $("umAdjustAmount").value = "";
+    $("umAdjustSender").value = "";
     $("umAdjustNote").value = "";
 
     const isActive = !!u.active;
@@ -674,7 +685,9 @@
   $("umCloseBtn").addEventListener("click", () => { $("userModal").classList.add("hidden"); activeUid = null; });
 
   function displayDescription(tx) {
-    if (tx.type === "admin_adjustment") return tx.direction === "credit" ? "Account credited" : "Account debited";
+    if (tx.type === "admin_adjustment") {
+      return tx.description || (tx.direction === "credit" ? "Account funded" : "Account debited");
+    }
     return tx.description || prettyType(tx.type);
   }
 
@@ -705,7 +718,6 @@
     openUserModal(activeUid);
   });
 
-  /* ---------- approve / deactivate account ---------- */
   $("umApproveBtn").addEventListener("click", async () => {
     if (!activeUid) return;
     await update(ref(db, `users/${activeUid}`), { active: true });
@@ -719,33 +731,58 @@
     openUserModal(activeUid);
   });
 
+  /* ---------- Fund / Adjust balance (with sender name) ---------- */
   $("umAdjustBtn").addEventListener("click", async () => {
     if (!activeUid) return;
     const amount = Number($("umAdjustAmount").value);
     const direction = $("umAdjustDirection").value;
     if (!amount || amount <= 0) { showToast("Enter a valid amount.", "rose"); return; }
+
     const user = allUsers[activeUid];
     const currentBalance = Number(user.balance || 0);
     const newBalance = direction === "credit" ? currentBalance + amount : currentBalance - amount;
 
+    const senderName = $("umAdjustSender").value.trim();
+    const note = $("umAdjustNote").value.trim();
+
+    // Build a human-friendly description that appears in the user's transaction history
+    let description;
+    if (direction === "credit") {
+      description = senderName ? `Account funded by ${senderName}` : "Account funded";
+    } else {
+      description = note || "Account debited";
+    }
+
     const updates = {};
     updates[`users/${activeUid}/balance`] = newBalance;
     updates[`transactions/admin_${Date.now()}`] = {
-      uid: activeUid, type: "admin_adjustment", direction, amount, currency: user.currency,
-      description: $("umAdjustNote").value.trim() || (direction === "credit" ? "Admin credit" : "Admin debit"),
-      status: "approved", createdAt: new Date().toISOString(), reviewedAt: new Date().toISOString(),
+      uid: activeUid,
+      type: "admin_adjustment",
+      direction,
+      amount,
+      currency: user.currency,
+      description,
+      status: "approved",
+      createdAt: new Date().toISOString(),
+      reviewedAt: new Date().toISOString(),
+      details: {
+        ...(senderName ? { senderName } : {}),
+        ...(note ? { narration: note } : {}),
+      },
     };
+
     try {
       await update(ref(db), updates);
       showToast("Balance updated", "mint");
       $("umAdjustAmount").value = "";
+      $("umAdjustSender").value = "";
       $("umAdjustNote").value = "";
     } catch (err) {
       showToast("Something went wrong — try again.", "rose");
     }
   });
 
-  /* ---------- transfer verification code actions ---------- */
+  /* ---------- transfer verification codes ---------- */
   $("umRegenerateCodesBtn").addEventListener("click", () => {
     $("umImf").value = randomCode();
     $("umCot").value = randomCode();
@@ -770,8 +807,6 @@
     }
     $("umCodesError").classList.add("hidden");
     try {
-      // Keys here (imf, cot, verification, aml, tax) must match the stage keys the
-      // dashboard's verification modal reads from users/{uid}/withdrawalCodes.
       await update(ref(db, `users/${activeUid}/withdrawalCodes`), { imf, cot, verification, aml, tax });
       showToast("Verification codes saved", "mint");
     } catch (err) {
@@ -779,7 +814,7 @@
     }
   });
 
-  /* ---------- delete user permanently ---------- */
+  /* ---------- delete user ---------- */
   $("umDeleteBtn").addEventListener("click", async () => {
     if (!activeUid) return;
     const u = allUsers[activeUid] || {};
@@ -804,7 +839,7 @@
     }
   });
 
-  /* ---------- Deposit Settings (bank details + crypto coins) ---------- */
+  /* ---------- Deposit Settings ---------- */
   function renderDepositSettingsUI() {
     const bank = (depositSettings && depositSettings.bank) || {};
     $("dsBankName").value = bank.bankName || "";
@@ -907,6 +942,5 @@
     }
   });
 </script>
-
 </body>
 </html>
