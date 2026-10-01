@@ -292,8 +292,8 @@
           </div>
           <div class="relative z-10 mt-7 grid grid-cols-3 gap-2.5">
             <button class="hero-action" data-goto="deposit"><span class="ic"><svg class="i"><use href="#i-deposit"/></svg></span><span data-i18n="nav.deposit">Deposit</span></button>
-            <button class="hero-action" data-goto="transfer" data-tab="local"><span class="ic"><svg class="i"><use href="#i-send"/></svg></span><span data-i18n="transfer.localShort">Local</span></button>
-            <button class="hero-action" data-goto="transfer" data-tab="intl"><span class="ic"><svg class="i"><use href="#i-globe"/></svg></span><span data-i18n="transfer.intlShort">International</span></button>
+            <button class="hero-action" data-goto="transfer"><span class="ic"><svg class="i"><use href="#i-send"/></svg></span><span data-i18n="nav.transfer">Transfer</span></button>
+            <button class="hero-action" data-goto="history"><span class="ic"><svg class="i"><use href="#i-clock"/></svg></span><span data-i18n="nav.history">History</span></button>
           </div>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-7">
@@ -801,6 +801,522 @@
 
   renderCoinGrid();
   applyLanguage("en");
+</script>
+
+<!-- ============================================================
+     LIVE SUPPORT CHAT — styles
+     ============================================================ -->
+<style>
+  /* Floating button */
+  #chatFab {
+    position: fixed; bottom: calc(90px + var(--safe-b)); right: 20px;
+    z-index: 300;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--emerald), var(--emerald-2));
+    box-shadow: 0 8px 28px -6px rgba(28,124,84,.65);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  }
+  #chatFab:hover { transform: scale(1.1); box-shadow: 0 12px 36px -6px rgba(28,124,84,.75); }
+  #chatFab svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  @media(min-width:1024px){ #chatFab { bottom: 32px; } }
+
+  /* Unread badge on fab */
+  #chatFabBadge {
+    position: absolute; top: -3px; right: -3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #ef4444; color: #fff;
+    font-size: 10px; font-weight: 800;
+    display: none; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+    font-family: var(--font-ui);
+  }
+  #chatFabBadge.show { display: flex; }
+
+  /* Chat modal */
+  #chatModal {
+    position: fixed;
+    bottom: calc(160px + var(--safe-b)); right: 20px;
+    z-index: 299;
+    width: min(380px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 200px));
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: 0 24px 60px -20px rgba(0,0,0,.35);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: chatPop .3s cubic-bezier(.16,1,.3,1) both;
+    font-family: var(--font-ui);
+  }
+  #chatModal.open { display: flex; }
+  @keyframes chatPop {
+    from { opacity:0; transform: scale(.92) translateY(16px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
+  @media(min-width:1024px){ #chatModal { bottom: 100px; } }
+  @media(max-width:440px){
+    #chatModal { right:0; left:0; bottom:0; width:100%; height:72vh; border-radius:24px 24px 0 0; }
+    #chatFab   { right:16px; }
+  }
+
+  /* Chat header */
+  .chat-header {
+    background: linear-gradient(135deg, #0B1E23, #123239);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .chat-header-avatar {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--mint), #5FCB93);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #0B1E23; flex-shrink: 0;
+  }
+  .chat-header-info { flex: 1; min-width: 0; }
+  .chat-header-info p:first-child { font-size: 14px; font-weight: 700; }
+  .chat-header-info p:last-child  { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
+  .chat-header-close {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: rgba(255,255,255,.1); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    transition: background .15s;
+  }
+  .chat-header-close:hover { background: rgba(255,255,255,.2); }
+  .chat-header-close svg { width: 16px; height: 16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+
+  /* Online dot */
+  .online-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e; display: inline-block;
+    box-shadow: 0 0 0 2px rgba(34,197,94,.3);
+    margin-right: 4px;
+  }
+
+  /* Messages area */
+  #chatMessages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth;
+  }
+  #chatMessages::-webkit-scrollbar { width: 4px; }
+  #chatMessages::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+
+  /* Bubble */
+  .chat-bubble-wrap { display: flex; flex-direction: column; max-width: 82%; }
+  .chat-bubble-wrap.me   { align-self: flex-end; align-items: flex-end; }
+  .chat-bubble-wrap.them { align-self: flex-start; align-items: flex-start; }
+
+  .chat-bubble {
+    padding: 9px 13px;
+    border-radius: 16px;
+    font-size: 13.5px; line-height: 1.5;
+    word-break: break-word;
+  }
+  .chat-bubble-wrap.me   .chat-bubble { background: var(--emerald); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-bubble-wrap.them .chat-bubble { background: var(--surface-2); color: var(--text); border-bottom-left-radius: 4px; }
+
+  .chat-bubble-time {
+    font-size: 10px; color: var(--muted); margin-top: 3px; padding: 0 3px;
+  }
+
+  /* Typing indicator */
+  .typing-dots { display: flex; gap: 4px; padding: 10px 14px; }
+  .typing-dots span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted); display: block;
+    animation: typingBounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes typingBounce { 0%,60%,100%{ transform:translateY(0); } 30%{ transform:translateY(-6px); } }
+
+  /* Date divider */
+  .chat-date-divider {
+    text-align: center; font-size: 10.5px; color: var(--muted);
+    font-weight: 600; letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chat-date-divider::before,
+  .chat-date-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--line);
+  }
+
+  /* Welcome banner */
+  .chat-welcome {
+    background: linear-gradient(135deg, rgba(28,124,84,.08), rgba(47,161,115,.05));
+    border: 1px solid rgba(28,124,84,.15);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 4px;
+    text-align: center;
+  }
+  .chat-welcome p:first-child { font-size: 20px; margin-bottom: 6px; }
+  .chat-welcome p:last-child  { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+  /* Input area */
+  .chat-input-area {
+    border-top: 1px solid var(--line);
+    padding: 12px 14px;
+    display: flex; gap: 8px; align-items: flex-end;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  #chatInput {
+    flex: 1; resize: none; border: 1.5px solid var(--line);
+    border-radius: 12px; padding: 9px 12px;
+    font-size: 13.5px; font-family: var(--font-ui);
+    background: var(--surface-2); color: var(--text);
+    max-height: 100px; min-height: 40px; overflow-y: auto;
+    transition: border-color .2s, box-shadow .2s;
+    outline: none; line-height: 1.45;
+  }
+  #chatInput:focus { border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(28,124,84,.12); }
+  #chatInput::placeholder { color: var(--muted); opacity: .65; }
+
+  #chatSendBtn {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    background: var(--emerald); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, transform .15s;
+  }
+  #chatSendBtn:hover { background: var(--emerald-2); transform: scale(1.05); }
+  #chatSendBtn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  #chatSendBtn svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Notification toast for incoming message */
+  .chat-notif {
+    position: fixed; top: 80px; right: 16px; z-index: 400;
+    background: var(--navy); color: #fff;
+    border-radius: 14px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 12px 36px -10px rgba(0,0,0,.5);
+    max-width: 300px; cursor: pointer;
+    animation: notifSlide .35s cubic-bezier(.16,1,.3,1) both;
+    font-family: var(--font-ui);
+  }
+  @keyframes notifSlide { from{ opacity:0; transform:translateX(110%); } to{ opacity:1; transform:none; } }
+  .chat-notif-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--mint), #5FCB93);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #0B1E23;
+  }
+  .chat-notif-text p:first-child { font-size: 12px; font-weight: 700; }
+  .chat-notif-text p:last-child  { font-size: 11.5px; color: rgba(255,255,255,.65); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+</style>
+
+<!-- ============================================================
+     FLOATING CHAT BUTTON
+     ============================================================ -->
+<button id="chatFab" aria-label="Open support chat">
+  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <span id="chatFabBadge"></span>
+</button>
+
+<!-- ============================================================
+     CHAT MODAL
+     ============================================================ -->
+<div id="chatModal" role="dialog" aria-modal="true" aria-label="PrimePay Support Chat">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-avatar">P</div>
+    <div class="chat-header-info">
+      <p>PrimePay Support</p>
+      <p><span class="online-dot"></span>We typically reply instantly</p>
+    </div>
+    <button class="chat-header-close" id="chatClose" aria-label="Close chat">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div id="chatMessages" aria-live="polite" aria-label="Chat messages"></div>
+
+  <!-- Input -->
+  <div class="chat-input-area">
+    <textarea id="chatInput" placeholder="Type a message…" rows="1" maxlength="1000"></textarea>
+    <button id="chatSendBtn" aria-label="Send message">
+      <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     CHAT JAVASCRIPT
+     ============================================================ -->
+<script type="module">
+  import { getDatabase, ref as dbRef, push, set, onValue, update, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getAuth, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { initializeApp, getApps }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+  /* Re-use the already-initialised Firebase app */
+  const app  = getApps()[0];
+  const auth = getAuth(app);
+  const db   = getDatabase(app);
+
+  const fab       = document.getElementById("chatFab");
+  const modal     = document.getElementById("chatModal");
+  const closeBtn  = document.getElementById("chatClose");
+  const msgArea   = document.getElementById("chatMessages");
+  const input     = document.getElementById("chatInput");
+  const sendBtn   = document.getElementById("chatSendBtn");
+  const fabBadge  = document.getElementById("chatFabBadge");
+
+  let uid          = null;
+  let userName     = "User";
+  let chatOpen     = false;
+  let unreadCount  = 0;
+  let lastSeenTs   = 0;   // timestamp of last message user has seen
+  let firstLoad    = true;
+  let prevDateStr  = "";
+  let chatListenerActive = false;
+
+  // ---- open / close ----
+  fab.addEventListener("click", openChat);
+  closeBtn.addEventListener("click", closeChat);
+
+  function openChat() {
+    chatOpen = true;
+    modal.classList.add("open");
+    fab.style.transform = "scale(0)";
+    fab.style.opacity   = "0";
+    fab.style.pointerEvents = "none";
+    unreadCount = 0;
+    fabBadge.classList.remove("show");
+    fabBadge.textContent = "";
+    // mark all as seen
+    if (uid) update(dbRef(db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
+    scrollBottom(true);
+    input.focus();
+  }
+
+  function closeChat() {
+    chatOpen = false;
+    modal.classList.remove("open");
+    fab.style.transform = "";
+    fab.style.opacity   = "";
+    fab.style.pointerEvents = "";
+  }
+
+  // ---- auto-grow textarea ----
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 100) + "px";
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  sendBtn.addEventListener("click", sendMessage);
+
+  // ---- send ----
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || !uid) return;
+    sendBtn.disabled = true;
+    input.value = "";
+    input.style.height = "auto";
+
+    const isFirstEver = msgArea.querySelectorAll(".chat-bubble-wrap").length === 0;
+
+    await push(dbRef(db, `chats/${uid}/messages`), {
+      text,
+      sender: "user",
+      senderName: userName,
+      ts: Date.now(),
+    });
+
+    // Update meta
+    await update(dbRef(db, `chats/${uid}/meta`), {
+      uid,
+      userName,
+      lastMessage: text,
+      lastTs: Date.now(),
+      lastSender: "user",
+      unreadByAdmin: true,
+      lastSeenByUser: Date.now(),
+    });
+
+    // If this is the very first message, queue the welcome reply
+    if (isFirstEver) {
+      setTimeout(async () => {
+        await push(dbRef(db, `chats/${uid}/messages`), {
+          text: "👋 Welcome to PrimePay Support! How can we help you today?",
+          sender: "admin",
+          senderName: "PrimePay Support",
+          ts: Date.now() + 1,
+        });
+        await update(dbRef(db, `chats/${uid}/meta`), {
+          lastMessage: "👋 Welcome to PrimePay Support! How can we help you today?",
+          lastTs: Date.now() + 1,
+          lastSender: "admin",
+          unreadByAdmin: false,
+        });
+      }, 900);
+    }
+
+    sendBtn.disabled = false;
+  }
+
+  // ---- format time ----
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const today = new Date();
+    const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString())     return "Today";
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+  }
+
+  // ---- render a single message bubble ----
+  function renderBubble(msg, animate = false) {
+    const isMe = msg.sender === "user";
+    const dateStr = fmtDate(msg.ts);
+
+    // Date divider
+    if (dateStr !== prevDateStr) {
+      prevDateStr = dateStr;
+      const div = document.createElement("div");
+      div.className = "chat-date-divider";
+      div.textContent = dateStr;
+      msgArea.appendChild(div);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = `chat-bubble-wrap ${isMe ? "me" : "them"}`;
+    if (animate) wrap.style.animation = "secIn .3s cubic-bezier(.16,1,.3,1) both";
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = msg.text;
+
+    const time = document.createElement("div");
+    time.className = "chat-bubble-time";
+    time.textContent = fmtTime(msg.ts);
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    msgArea.appendChild(wrap);
+  }
+
+  function scrollBottom(force = false) {
+    if (force || msgArea.scrollHeight - msgArea.scrollTop < msgArea.clientHeight + 120) {
+      setTimeout(() => { msgArea.scrollTop = msgArea.scrollHeight; }, 30);
+    }
+  }
+
+  // ---- show in-app notification ----
+  function showInAppNotif(text) {
+    const existing = document.querySelector(".chat-notif");
+    if (existing) existing.remove();
+
+    const notif = document.createElement("div");
+    notif.className = "chat-notif";
+    notif.innerHTML = `
+      <div class="chat-notif-icon">P</div>
+      <div class="chat-notif-text">
+        <p>PrimePay Support</p>
+        <p>${text.slice(0, 60)}${text.length > 60 ? "…" : ""}</p>
+      </div>`;
+    notif.addEventListener("click", () => { notif.remove(); openChat(); });
+    document.body.appendChild(notif);
+    setTimeout(() => { if (notif.parentNode) { notif.style.transition = "opacity .3s, transform .3s"; notif.style.opacity = "0"; notif.style.transform = "translateX(110%)"; setTimeout(() => notif.remove(), 320); } }, 5000);
+  }
+
+  // ---- browser push notification ----
+  function sendBrowserNotif(title, body) {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: "/favicon.ico", badge: "/favicon.ico" });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(p => {
+        if (p === "granted") new Notification(title, { body });
+      });
+    }
+  }
+
+  // ---- listen for messages ----
+  function startChatListener(uid) {
+    if (chatListenerActive) return;
+    chatListenerActive = true;
+
+    // Show welcome banner while loading
+    const welcomeBanner = document.createElement("div");
+    welcomeBanner.className = "chat-welcome";
+    welcomeBanner.id = "chatWelcomeBanner";
+    welcomeBanner.innerHTML = `<p>💬</p><p>Send us a message and we'll get back to you right away.</p>`;
+    msgArea.appendChild(welcomeBanner);
+
+    onValue(dbRef(db, `chats/${uid}/messages`), (snap) => {
+      const data = snap.val();
+
+      // Remove welcome banner once we have messages
+      const banner = document.getElementById("chatWelcomeBanner");
+
+      if (!data) {
+        if (banner) banner.style.display = "flex";
+        firstLoad = false;
+        return;
+      }
+      if (banner) banner.remove();
+
+      const msgs = Object.entries(data)
+        .map(([id, m]) => ({ id, ...m }))
+        .sort((a, b) => a.ts - b.ts);
+
+      if (firstLoad) {
+        // Render all existing messages silently
+        msgArea.innerHTML = "";
+        prevDateStr = "";
+        msgs.forEach(m => renderBubble(m, false));
+        scrollBottom(true);
+        firstLoad = false;
+        lastSeenTs = msgs[msgs.length - 1]?.ts || 0;
+      } else {
+        // New message arrived
+        const lastRenderedCount = msgArea.querySelectorAll(".chat-bubble-wrap").length;
+        const newMsgs = msgs.slice(lastRenderedCount);
+        newMsgs.forEach(m => {
+          renderBubble(m, true);
+          if (m.sender === "admin" && m.ts > lastSeenTs) {
+            lastSeenTs = m.ts;
+            if (chatOpen) {
+              // Already open — just scroll
+              scrollBottom(true);
+              if (uid) update(dbRef(db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
+            } else {
+              // Chat is closed — badge + in-app notif + browser push
+              unreadCount++;
+              fabBadge.textContent = unreadCount > 9 ? "9+" : unreadCount;
+              fabBadge.classList.add("show");
+              showInAppNotif(m.text);
+              sendBrowserNotif("PrimePay Support", m.text);
+            }
+          }
+        });
+        if (chatOpen) scrollBottom();
+      }
+    });
+  }
+
+  // ---- auth ----
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
+    uid      = user.uid;
+    userName = user.displayName || user.email || "User";
+    // Request notification permission proactively
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    startChatListener(uid);
+  });
 </script>
 </body>
 </html>

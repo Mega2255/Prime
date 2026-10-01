@@ -93,6 +93,13 @@
   ::-webkit-scrollbar{ width:6px; height:6px; }
   ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; }
   ::selection{ background:var(--mint); color:var(--forest); }
+
+  /* ---- Support chat: mobile layout (list <-> conversation) ---- */
+  @media (max-width: 639px){
+    #chatPaneWrap{ display:none; }
+    #chatRoot.chat-mobile-active #chatUserList{ display:none; }
+    #chatRoot.chat-mobile-active #chatPaneWrap{ display:flex; }
+  }
 </style>
 </head>
 <body class="min-h-screen">
@@ -145,6 +152,7 @@
       <div class="nav-item" data-section="deposits"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V7m0 14-4.5-4.5M12 21l4.5-4.5M4 4h16"/></svg> Deposits <span id="badgeDeposits" class="ml-auto hidden pill pill-pending"></span></div>
       <div class="nav-item" data-section="transfers"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13M7 7l4-4M7 7l4 4M17 17H4M17 17l-4-4M17 17l-4 4"/></svg> Transfers <span id="badgeTransfers" class="ml-auto hidden pill pill-pending"></span></div>
       <div class="nav-item" data-section="depositsettings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 9.5h19M7 15h4"/></svg> Deposit Settings</div>
+      <div class="nav-item" data-section="chats"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Support Chat <span id="badgeChats" class="ml-auto hidden pill pill-pending"></span></div>
     </nav>
     <button id="logoutBtn" class="nav-item mt-2" style="color:var(--error)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg> Log out
@@ -253,6 +261,61 @@
         </div>
       </section>
 
+      <!-- ===== Support Chat ===== -->
+      <section id="sec-chats" class="hidden">
+        <h1 class="text-[24px] font-serif font-medium mb-1">Support Chat</h1>
+        <p class="text-muted2 text-[14px] mb-5">Real-time conversations with your users.</p>
+
+        <div id="chatRoot" class="flex gap-4 h-[calc(100vh-170px)] sm:h-[calc(100vh-220px)] min-h-[420px] sm:min-h-[500px]">
+
+          <!-- Left: conversation list -->
+          <div id="chatUserList" class="w-full sm:w-[280px] flex-shrink-0 surface flex flex-col overflow-hidden">
+            <div class="p-3 border-b" style="border-color:var(--border)">
+              <input id="chatUserSearch" class="input-field text-[13px] py-2" placeholder="Search users…" />
+            </div>
+            <div id="chatUserListInner" class="flex-1 overflow-y-auto divide-y" style="border-color:var(--border)">
+              <p class="p-4 text-muted2 text-[13px] text-center">No conversations yet.</p>
+            </div>
+          </div>
+
+          <!-- Right: active conversation -->
+          <div id="chatPaneWrap" class="flex-1 surface flex flex-col overflow-hidden">
+            <!-- Placeholder -->
+            <div id="chatPlaceholder" class="flex-1 flex flex-col items-center justify-center gap-3 text-center p-6">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:rgba(28,124,84,.1)">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--leaf)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="font-serif text-[17px]">Select a conversation</p>
+              <p class="help-sm max-w-xs">Choose a user from the left to view and reply to their messages.</p>
+            </div>
+
+            <!-- Active chat -->
+            <div id="adminChatPane" class="hidden flex-1 flex flex-col overflow-hidden">
+              <!-- Chat header -->
+              <div id="adminChatHeader" class="flex items-center gap-3 px-4 py-3 border-b flex-shrink-0" style="border-color:var(--border)">
+                <button id="chatBackBtn" class="sm:hidden text-muted2 flex-shrink-0" aria-label="Back to conversations"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div id="adminChatAvatar" class="w-9 h-9 rounded-xl flex items-center justify-center font-serif font-bold text-[14px] flex-shrink-0" style="background:var(--mint);color:var(--leaf)">U</div>
+                <div class="flex-1 min-w-0">
+                  <p id="adminChatName" class="font-bold text-[14px] truncate">—</p>
+                  <p id="adminChatSub"  class="help-sm">Active now</p>
+                </div>
+              </div>
+              <!-- Messages -->
+              <div id="adminChatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" aria-live="polite"></div>
+              <!-- Input -->
+              <div class="border-t p-3 flex gap-2 items-end flex-shrink-0" style="border-color:var(--border)">
+                <textarea id="adminChatInput" rows="1" maxlength="1000"
+                  class="input-field text-[13.5px] resize-none py-2 flex-1"
+                  style="min-height:40px;max-height:100px;overflow-y:auto;"
+                  placeholder="Type a reply…"></textarea>
+                <button id="adminChatSend" class="btn-mint font-bold text-[13px] px-4 py-2 flex-shrink-0" style="border-radius:10px;height:40px;">Send</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -350,10 +413,67 @@
 
 <div id="toastWrap" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 items-center px-4 w-full sm:w-auto"></div>
 
+<style>
+  /* Admin chat user list item */
+  .chat-user-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; cursor: pointer;
+    transition: background .15s;
+    position: relative;
+  }
+  .chat-user-item:hover { background: var(--surface-2); }
+  .chat-user-item.active { background: rgba(28,124,84,.07); }
+  .chat-user-item .cui-avatar {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+    background: linear-gradient(135deg, var(--mint), #5FCB93); color: #0B1E23;
+  }
+  .chat-user-item .cui-info { flex: 1; min-width: 0; }
+  .chat-user-item .cui-name { font-size: 13.5px; font-weight: 700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .chat-user-item .cui-last { font-size: 11.5px; color: var(--muted); margin-top: 1px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .chat-user-item .cui-time { font-size: 10.5px; color: var(--muted); white-space: nowrap; align-self: flex-start; margin-top: 2px; }
+  .chat-user-item .cui-unread {
+    position: absolute; top: 12px; right: 14px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--leaf); color: #fff;
+    font-size: 9.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Admin chat bubbles */
+  #adminChatMessages .chat-bubble-wrap { display:flex; flex-direction:column; max-width:84%; }
+  #adminChatMessages .chat-bubble-wrap.me   { align-self:flex-end; align-items:flex-end; }
+  #adminChatMessages .chat-bubble-wrap.them { align-self:flex-start; align-items:flex-start; }
+  #adminChatMessages .chat-bubble { padding:9px 13px; border-radius:16px; font-size:13.5px; line-height:1.5; word-break:break-word; }
+  #adminChatMessages .chat-bubble-wrap.me   .chat-bubble { background:var(--leaf); color:#fff; border-bottom-right-radius:4px; }
+  #adminChatMessages .chat-bubble-wrap.them .chat-bubble { background:var(--surface-2); color:var(--text); border-bottom-left-radius:4px; }
+  #adminChatMessages .chat-bubble-time { font-size:10px; color:var(--muted); margin-top:3px; padding:0 3px; }
+  #adminChatMessages .chat-date-divider { text-align:center; font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.04em; display:flex; align-items:center; gap:8px; }
+  #adminChatMessages .chat-date-divider::before,
+  #adminChatMessages .chat-date-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* Admin chat notification */
+  .admin-chat-notif {
+    position: fixed; top: 80px; right: 16px; left: 16px; z-index: 400;
+    background: var(--forest); color: #fff;
+    border-radius: 14px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 12px 36px -10px rgba(0,0,0,.5);
+    max-width: 300px; margin-left:auto; cursor: pointer;
+    animation: notifSlideA .35s cubic-bezier(.16,1,.3,1) both;
+    font-family: var(--font-ui);
+  }
+  @keyframes notifSlideA { from{ opacity:0; transform:translateX(110%); } to{ opacity:1; transform:none; } }
+  .admin-chat-notif .n-avatar { width:36px; height:36px; border-radius:10px; flex-shrink:0; background:linear-gradient(135deg,var(--mint),#5FCB93); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#0B1E23; }
+  .admin-chat-notif .n-text p:first-child { font-size:12px; font-weight:700; }
+  .admin-chat-notif .n-text p:last-child  { font-size:11.5px; color:rgba(255,255,255,.65); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+</style>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, onValue, update, remove, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
@@ -941,6 +1061,333 @@
       showToast("Something went wrong — try again.", "rose");
     }
   });
+
+  /* ============================================================
+     ADMIN SUPPORT CHAT SYSTEM
+     ============================================================ */
+  const sectionIds2 = ["overview","users","deposits","transfers","depositsettings","chats"];
+  // Patch goToSection to include chats
+  document.querySelectorAll(".nav-item[data-section]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const name = el.dataset.section;
+      sectionIds2.forEach((s) => {
+        const sec = $(`sec-${s}`);
+        if (sec) sec.classList.toggle("hidden", s !== name);
+      });
+      document.querySelectorAll(".nav-item[data-section]").forEach((n) => n.classList.toggle("active", n.dataset.section === name));
+      const titles = { overview:"Overview", users:"Users", deposits:"Deposits", transfers:"Transfers", depositsettings:"Deposit Settings", chats:"Support Chat" };
+      $("mobileTitle").textContent = titles[name] || name;
+      closeDrawer();
+      window.scrollTo({ top:0, behavior:"smooth" });
+      if (name === "chats") initAdminChat();
+      else $("chatRoot") && $("chatRoot").classList.remove("chat-mobile-active");
+    });
+  });
+
+  let adminChatInitDone = false;
+  let activeUserChatUid = null;
+  let adminChatMsgListener = null;
+  let adminPrevDateStr = "";
+  let allChatMeta = {};
+
+  function initAdminChat() {
+    if (adminChatInitDone) return;
+    adminChatInitDone = true;
+
+    // Listen to all chats meta
+    onValue(ref(db, "chats"), (snap) => {
+      const data = snap.val() || {};
+      allChatMeta = data;
+
+      // Count unread
+      let totalUnread = 0;
+      Object.values(data).forEach(c => { if (c.meta && c.meta.unreadByAdmin) totalUnread++; });
+      setBadge("badgeChats", totalUnread);
+
+      renderChatUserList(data);
+    });
+  }
+
+  function renderChatUserList(data) {
+    const search = ($("chatUserSearch").value || "").toLowerCase().trim();
+    const inner = $("chatUserListInner");
+
+    const entries = Object.entries(data)
+      .filter(([uid, c]) => c.meta)
+      .sort(([,a],[,b]) => (b.meta.lastTs || 0) - (a.meta.lastTs || 0));
+
+    const filtered = search
+      ? entries.filter(([, c]) => (c.meta.userName || "").toLowerCase().includes(search))
+      : entries;
+
+    if (!filtered.length) {
+      inner.innerHTML = `<p class="p-4 text-muted2 text-[13px] text-center">No conversations yet.</p>`;
+      return;
+    }
+
+    inner.innerHTML = filtered.map(([uid, c]) => {
+      const meta = c.meta || {};
+      const name = meta.userName || "User";
+      const initial = name.charAt(0).toUpperCase();
+      const last = meta.lastMessage || "No messages yet";
+      const ts = meta.lastTs ? new Date(meta.lastTs).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
+      const unread = meta.unreadByAdmin;
+      const isActive = activeUserChatUid === uid ? "active" : "";
+      return `<div class="chat-user-item ${isActive}" data-chat-uid="${uid}">
+        <div class="cui-avatar">${initial}</div>
+        <div class="cui-info">
+          <div class="cui-name">${name}</div>
+          <div class="cui-last">${last.slice(0, 45)}${last.length > 45 ? "…" : ""}</div>
+        </div>
+        <div class="cui-time">${ts}</div>
+        ${unread ? `<div class="cui-unread">!</div>` : ""}
+      </div>`;
+    }).join("");
+
+    inner.querySelectorAll("[data-chat-uid]").forEach(el => {
+      el.addEventListener("click", () => openAdminChat(el.dataset.chatUid));
+    });
+  }
+
+  $("chatUserSearch").addEventListener("input", () => renderChatUserList(allChatMeta));
+
+  function openAdminChat(uid) {
+    activeUserChatUid = uid;
+    const meta = (allChatMeta[uid] && allChatMeta[uid].meta) || {};
+    const name = meta.userName || "User";
+
+    // Show pane, hide placeholder
+    $("chatPlaceholder").classList.add("hidden");
+    $("adminChatPane").classList.remove("hidden");
+    $("adminChatPane").style.display = "flex";
+
+    // On mobile, swap the list out for the conversation view
+    if (window.innerWidth < 640) $("chatRoot").classList.add("chat-mobile-active");
+
+    // Set header
+    $("adminChatAvatar").textContent = name.charAt(0).toUpperCase();
+    $("adminChatName").textContent = name;
+    $("adminChatSub").textContent = meta.lastTs
+      ? `Last active ${new Date(meta.lastTs).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}`
+      : "User";
+
+    // Mark read
+    update(ref(db, `chats/${uid}/meta`), { unreadByAdmin: false });
+
+    // Re-render list to remove unread indicator
+    renderChatUserList(allChatMeta);
+
+    // Remove previous listener
+    if (adminChatMsgListener) { adminChatMsgListener(); adminChatMsgListener = null; }
+
+    // Clear messages
+    $("adminChatMessages").innerHTML = "";
+    adminPrevDateStr = "";
+
+    // Listen to messages
+    let firstAdminLoad = true;
+    let renderedCount = 0;
+    adminChatMsgListener = onValue(ref(db, `chats/${uid}/messages`), (snap) => {
+      const data = snap.val();
+      if (!data) { firstAdminLoad = false; return; }
+
+      const msgs = Object.entries(data)
+        .map(([id, m]) => ({ id, ...m }))
+        .sort((a, b) => a.ts - b.ts);
+
+      if (firstAdminLoad) {
+        $("adminChatMessages").innerHTML = "";
+        adminPrevDateStr = "";
+        msgs.forEach(m => renderAdminBubble(m, false));
+        renderedCount = msgs.length;
+        adminScrollBottom();
+        firstAdminLoad = false;
+      } else {
+        const newMsgs = msgs.slice(renderedCount);
+        newMsgs.forEach(m => renderAdminBubble(m, true));
+        renderedCount = msgs.length;
+        adminScrollBottom();
+      }
+    });
+  }
+
+  // Back to conversation list (mobile)
+  $("chatBackBtn").addEventListener("click", () => {
+    $("chatRoot").classList.remove("chat-mobile-active");
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 640) $("chatRoot") && $("chatRoot").classList.remove("chat-mobile-active");
+  });
+
+  function renderAdminBubble(msg, animate) {
+    const isMe = msg.sender === "admin";
+    const dateStr = fmtAdminDate(msg.ts);
+    const area = $("adminChatMessages");
+
+    if (dateStr !== adminPrevDateStr) {
+      adminPrevDateStr = dateStr;
+      const div = document.createElement("div");
+      div.className = "chat-date-divider";
+      div.textContent = dateStr;
+      area.appendChild(div);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = `chat-bubble-wrap ${isMe ? "me" : "them"}`;
+    if (animate) wrap.style.animation = "secIn .3s cubic-bezier(.16,1,.3,1) both";
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = msg.text;
+
+    const time = document.createElement("div");
+    time.className = "chat-bubble-time";
+    time.textContent = fmtAdminTime(msg.ts);
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    area.appendChild(wrap);
+  }
+
+  function adminScrollBottom() {
+    const area = $("adminChatMessages");
+    setTimeout(() => { area.scrollTop = area.scrollHeight; }, 30);
+  }
+
+  function fmtAdminTime(ts) {
+    return new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  }
+  function fmtAdminDate(ts) {
+    const d = new Date(ts);
+    const today = new Date();
+    const yesterday = new Date(); yesterday.setDate(today.getDate()-1);
+    if (d.toDateString() === today.toDateString())     return "Today";
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString([], { weekday:"long", month:"short", day:"numeric" });
+  }
+
+  // Admin send reply
+  async function adminSendMessage() {
+    const text = ($("adminChatInput").value || "").trim();
+    if (!text || !activeUserChatUid) return;
+    $("adminChatSend").disabled = true;
+    $("adminChatInput").value = "";
+    $("adminChatInput").style.height = "auto";
+
+    const uid = activeUserChatUid;
+    const meta = (allChatMeta[uid] && allChatMeta[uid].meta) || {};
+    const userName = meta.userName || "User";
+
+    await push(ref(db, `chats/${uid}/messages`), {
+      text,
+      sender: "admin",
+      senderName: "PrimePay Support",
+      ts: Date.now(),
+    });
+
+    await update(ref(db, `chats/${uid}/meta`), {
+      lastMessage: text,
+      lastTs: Date.now(),
+      lastSender: "admin",
+      unreadByAdmin: false,
+    });
+
+    $("adminChatSend").disabled = false;
+  }
+
+  $("adminChatSend").addEventListener("click", adminSendMessage);
+  $("adminChatInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); adminSendMessage(); }
+  });
+  $("adminChatInput").addEventListener("input", () => {
+    $("adminChatInput").style.height = "auto";
+    $("adminChatInput").style.height = Math.min($("adminChatInput").scrollHeight, 100) + "px";
+  });
+
+  // Admin notifications for new incoming user messages
+  function sendAdminBrowserNotif(title, body) {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: "/favicon.ico" });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(p => {
+        if (p === "granted") new Notification(title, { body });
+      });
+    }
+  }
+
+  function showAdminNotif(userName, text, uid) {
+    const existing = document.querySelector(".admin-chat-notif");
+    if (existing) existing.remove();
+    const notif = document.createElement("div");
+    notif.className = "admin-chat-notif";
+    notif.innerHTML = `
+      <div class="n-avatar">${userName.charAt(0).toUpperCase()}</div>
+      <div class="n-text">
+        <p>${userName}</p>
+        <p>${text.slice(0, 55)}${text.length > 55 ? "…" : ""}</p>
+      </div>`;
+    notif.addEventListener("click", () => {
+      notif.remove();
+      goToSectionChat("chats");
+      setTimeout(() => openAdminChat(uid), 120);
+    });
+    document.body.appendChild(notif);
+    setTimeout(() => {
+      if (notif.parentNode) {
+        notif.style.transition = "opacity .3s, transform .3s";
+        notif.style.opacity = "0";
+        notif.style.transform = "translateX(110%)";
+        setTimeout(() => notif.remove(), 320);
+      }
+    }, 5500);
+  }
+
+  function goToSectionChat(name) {
+    sectionIds2.forEach((s) => {
+      const sec = $(`sec-${s}`);
+      if (sec) sec.classList.toggle("hidden", s !== name);
+    });
+    document.querySelectorAll(".nav-item[data-section]").forEach((n) => n.classList.toggle("active", n.dataset.section === name));
+    $("mobileTitle").textContent = "Support Chat";
+    closeDrawer();
+    initAdminChat();
+  }
+
+  // Watch for new user messages globally to fire admin notification
+  let adminLastKnownTs = {};
+  function watchAllChatsForNotifs() {
+    onValue(ref(db, "chats"), (snap) => {
+      const data = snap.val() || {};
+      Object.entries(data).forEach(([uid, chat]) => {
+        if (!chat.meta || !chat.messages) return;
+        const msgs = Object.values(chat.messages).sort((a,b) => a.ts - b.ts);
+        const lastMsg = msgs[msgs.length - 1];
+        if (!lastMsg) return;
+        const prevTs = adminLastKnownTs[uid] || 0;
+        if (lastMsg.ts > prevTs && lastMsg.sender === "user") {
+          // New user message
+          if (adminLastKnownTs[uid] !== undefined) {
+            // Not first load — show notification
+            const userName = chat.meta.userName || "User";
+            if (activeUserChatUid !== uid) {
+              showAdminNotif(userName, lastMsg.text, uid);
+              sendAdminBrowserNotif(`New message from ${userName}`, lastMsg.text);
+            }
+          }
+          adminLastKnownTs[uid] = lastMsg.ts;
+        } else if (!adminLastKnownTs[uid]) {
+          adminLastKnownTs[uid] = lastMsg.ts;
+        }
+      });
+    });
+  }
+
+  // Request notification permission for admin
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+  watchAllChatsForNotifs();
 </script>
 </body>
 </html>
