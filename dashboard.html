@@ -617,14 +617,60 @@
     return data;
   }
 
-  const DEFAULT_COINS=[{id:"btc",name:"Bitcoin",ticker:"BTC",address:"bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",grad:"linear-gradient(135deg,#F7931A,#FFB74D)",warning:"Only send BTC to this address on the Bitcoin network."},{id:"eth",name:"Ethereum",ticker:"ETH",address:"0x71C7656EC7ab88b098defB751B7401B5f6d8976",grad:"linear-gradient(135deg,#627EEA,#8AA6FF)",warning:"Only send ETH or ERC-20 tokens to this address."},{id:"usdt",name:"Tether",ticker:"USDT",address:"TXYZbc1a2b3c4d5e6f7g8h9i0jklmnopqrst",grad:"linear-gradient(135deg,#26A17B,#5FD6AE)",warning:"Only send USDT on the TRC-20 network to this address."},{id:"usdc",name:"USD Coin",ticker:"USDC",address:"0x9aB4c31e2F1d8B4A6C0e5D7f3A2B1c9D8e7F6a5B",grad:"linear-gradient(135deg,#2775CA,#7FB9F2)",warning:"Only send USDC or ERC-20 tokens to this address."}];
-  let COINS=DEFAULT_COINS, selectedCoin=null;
+  // No default coins — only show what the admin has configured
+  let COINS=[], selectedCoin=null;
   const COIN_GRADS=["linear-gradient(135deg,#F7931A,#FFB74D)","linear-gradient(135deg,#627EEA,#8AA6FF)","linear-gradient(135deg,#26A17B,#5FD6AE)","linear-gradient(135deg,#2775CA,#7FB9F2)","linear-gradient(135deg,#1C7C54,#2FA173)","linear-gradient(135deg,#E1306C,#F77737)","linear-gradient(135deg,#C9A227,#E9CE73)"];
 
-  function renderCoinGrid() { $("cryptoCoinGrid").innerHTML=COINS.map((c)=>`<button type="button" class="coin" data-coin="${esc(c.id)}"><span class="w-10 h-10 rounded-full inline-flex items-center justify-center text-white font-extrabold text-[13px]" style="background:${c.grad}">${esc(c.ticker.slice(0,1))}</span><span>${esc(c.ticker)}</span></button>`).join(""); $("cryptoCoinGrid").querySelectorAll("[data-coin]").forEach((b)=>b.addEventListener("click",()=>selectCoin(b.dataset.coin))); }
+  function renderCoinGrid() {
+    if (!COINS.length) {
+      $("cryptoCoinGrid").innerHTML = `<p class="col-span-2 sm:col-span-4 text-center muted text-[13px] py-4">No crypto deposit options are available yet. Please check back later or use bank transfer.</p>`;
+      return;
+    }
+    $("cryptoCoinGrid").innerHTML=COINS.map((c)=>`<button type="button" class="coin" data-coin="${esc(c.id)}"><span class="w-10 h-10 rounded-full inline-flex items-center justify-center text-white font-extrabold text-[13px]" style="background:${c.grad}">${esc(c.ticker.slice(0,1))}</span><span>${esc(c.ticker)}</span></button>`).join("");
+    $("cryptoCoinGrid").querySelectorAll("[data-coin]").forEach((b)=>b.addEventListener("click",()=>selectCoin(b.dataset.coin)));
+  }
   function selectCoin(id) { selectedCoin=COINS.find((c)=>c.id===id); if(!selectedCoin)return; document.querySelectorAll(".coin").forEach((b)=>b.classList.toggle("sel",b.dataset.coin===id)); $("cryptoAddress").textContent=selectedCoin.address; $("cryptoNetworkLabel").textContent=selectedCoin.name; $("cryptoWarning").textContent=selectedCoin.warning; $("cryptoQr").src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedCoin.address)}`; $("cryptoAddressBox").classList.remove("hidden"); $("cryptoDepositForm").classList.remove("hidden"); }
-  function refreshCoinsFromSettings() { const configured=depositSettings.crypto&&depositSettings.crypto.coins; if(configured&&Object.keys(configured).length){const enabled=Object.entries(configured).filter(([,c])=>c&&c.enabled!==false&&c.address).map(([id,c],i)=>({id,name:c.name||c.ticker||id.toUpperCase(),ticker:c.ticker||id.toUpperCase(),address:c.address,grad:COIN_GRADS[i%COIN_GRADS.length],warning:c.warning||`Only send ${c.ticker||""} to this address.`}));COINS=enabled.length?enabled:DEFAULT_COINS;}else COINS=DEFAULT_COINS; selectedCoin=null; $("cryptoAddressBox").classList.add("hidden"); $("cryptoDepositForm").classList.add("hidden"); renderCoinGrid(); }
-  function applyDepositSettings() { const bank=(depositSettings&&depositSettings.bank)||{}; $("depBankName").textContent=bank.bankName||"PrimePay"; if(bank.helpText)$("depositBankHelpText").textContent=bank.helpText; const acct=bank.accountNumber||userData.accountNumber||""; $("depAcctNumber").textContent=acct?acct.replace(/(\d{4})(?=\d)/g,"$1 ").trim():"—"; $("depAcctName").textContent=bank.accountName||userData.fullName||"—"; $("depCurrency").textContent=bank.currency||userData.currency||"—"; }
+  function refreshCoinsFromSettings() {
+    const configured=depositSettings.crypto&&depositSettings.crypto.coins;
+    if(configured&&Object.keys(configured).length){
+      const enabled=Object.entries(configured)
+        .filter(([,c])=>c&&c.enabled!==false&&c.address)
+        .map(([id,c],i)=>({id,name:c.name||c.ticker||id.toUpperCase(),ticker:c.ticker||id.toUpperCase(),address:c.address,grad:COIN_GRADS[i%COIN_GRADS.length],warning:c.warning||`Only send ${c.ticker||""} to this address.`}));
+      COINS=enabled;
+    } else {
+      // Admin has not configured any coins yet — show nothing
+      COINS=[];
+    }
+    selectedCoin=null;
+    $("cryptoAddressBox").classList.add("hidden");
+    $("cryptoDepositForm").classList.add("hidden");
+    renderCoinGrid();
+  }
+  function applyDepositSettings() {
+    const bank = (depositSettings && depositSettings.bank) || {};
+    const hasDetails = bank.accountNumber && bank.accountName;
+
+    // Bank name — admin-set only, default label only
+    $("depBankName").textContent = bank.bankName || "PrimePay";
+
+    // Help text — admin-set only
+    if (bank.helpText) $("depositBankHelpText").textContent = bank.helpText;
+
+    if (!hasDetails) {
+      // Admin has not configured bank details yet — show placeholder notice
+      $("depAcctNumber").textContent = "Not configured yet";
+      $("depAcctName").textContent   = "Not configured yet";
+      $("depCurrency").textContent   = bank.currency || "—";
+      $("depositBankHelpText").textContent = "Bank deposit details have not been configured yet. Please contact support for payment instructions.";
+    } else {
+      // Only show what admin explicitly entered — never the user's own account
+      const acct = bank.accountNumber || "";
+      $("depAcctNumber").textContent = acct ? acct.replace(/(\d{4})(?=\d)/g,"$1 ").trim() : "—";
+      $("depAcctName").textContent   = bank.accountName || "—";
+      $("depCurrency").textContent   = bank.currency || "—";
+      if (bank.helpText) $("depositBankHelpText").textContent = bank.helpText;
+    }
+  }
   document.querySelectorAll("[data-deposit-tab]").forEach((b)=>b.addEventListener("click",()=>{document.querySelectorAll("[data-deposit-tab]").forEach((x)=>x.classList.toggle("active",x===b));$("depositBankPanel").classList.toggle("hidden",b.dataset.depositTab!=="bank");$("depositCryptoPanel").classList.toggle("hidden",b.dataset.depositTab!=="crypto");}));
   $("copyDepBankBtn").addEventListener("click",()=>copyText($("depBankName").textContent,"Bank name copied"));
   $("copyDepAcctBtn").addEventListener("click",()=>copyText(($("depAcctNumber").textContent||"").replace(/\s/g,""),"Account number copied"));
@@ -799,7 +845,7 @@
   $("logoutBtn").addEventListener("click",doLogout);
   $("suspendedLogoutBtn").addEventListener("click",doLogout);
 
-  renderCoinGrid();
+  renderCoinGrid(); // renders "not available yet" until admin settings load
   applyLanguage("en");
 </script>
 
