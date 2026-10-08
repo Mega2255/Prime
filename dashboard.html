@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Nunito:wght@400;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
   tailwind.config = {
     darkMode: 'class',
@@ -544,6 +546,42 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+  /* ── EmailJS ─────────────────────────────────────────────── */
+  emailjs.init("eOhocbTvKcHhm7gjq");
+  const EMAILJS_SERVICE    = "service_l1ohh9e";
+  const EMAILJS_TMPL_NOTIF = "template_mu13vzu";
+  const SUPPORT_EMAIL      = "support@primepy.online"; // ← replace
+  const DASHBOARD_URL      = "https://primepy.online/dashboard.html"; // ← replace
+
+  // Keep notification content conservative for SMTP spam filtering.
+  // This does not change the dashboard UI or transaction logic.
+  const stripSpammyText = (value) => String(value ?? "")
+    .replace(/[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{FE0F}\\u{200D}]/gu, "")
+    .replace(/!+/g, ".")
+    .replace(/\\s{2,}/g, " ")
+    .trim();
+
+  async function sendTransferEmail(params) {
+    try {
+      const safeParams = {};
+      for (const [key, value] of Object.entries(params || {})) {
+        safeParams[key] = typeof value === "string"
+          ? stripSpammyText(value)
+          : value;
+      }
+
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TMPL_NOTIF, {
+        to_email:      userData.email || "",
+        support_email: SUPPORT_EMAIL,
+        dashboard_url: DASHBOARD_URL,
+        year:          new Date().getFullYear(),
+        ...safeParams,
+      });
+    } catch (err) {
+      console.error("EmailJS transfer email failed (non-blocking):", err);
+    }
+  }
+
   let currentUid = null, userData = {}, allTx = [], depositSettings = {};
   let settingsListenerAttached = false, currentSection = "overview", lang = "en";
   let balHidden = false, profileEditing = false, authResolved = false;
@@ -741,8 +779,40 @@
   ["itSwift","itAccountNumber"].forEach((id)=>$(id).addEventListener("input",()=>{$(id).value=$(id).value.toUpperCase();}));
   $("itCountry").addEventListener("change",()=>{const c=COUNTRY_CURRENCY[$("itCountry").value];if(c&&!$("itCurrency").value)$("itCurrency").value=c;});
 
-  $("localTransferForm").addEventListener("submit",(e)=>{e.preventDefault();if(!userData.active)return toast("Your account is pending approval — transfers are locked.","bad");if(!validateLocal())return;const amount=Number($("ltAmount").value),name=$("ltAccountName").value.trim();openVerification({to:`${name} · ${$("ltBankName").value.trim()}`,amountText:fmtMoney(amount,userData.currency)},async()=>{await createTransaction({type:"transfer_local",direction:"debit",amount,currency:userData.currency,description:`Local transfer to ${name}`,details:{bankName:$("ltBankName").value.trim(),accountNumber:$("ltAccountNumber").value.trim(),accountName:name,narration:$("ltNarration").value.trim()}});$("localTransferForm").reset();setAlert($("transferAlert"),"Transfer verified and submitted — pending admin approval.","ok");toast("Transfer submitted","ok");});});
-  $("intlTransferForm").addEventListener("submit",(e)=>{e.preventDefault();if(!userData.active)return toast("Your account is pending approval — transfers are locked.","bad");if(!validateIntl())return;const amount=Number($("itAmount").value),name=$("itName").value.trim(),country=$("itCountry").value;openVerification({to:`${name} · ${country}`,amountText:fmtMoney(amount,userData.currency)},async()=>{await createTransaction({type:"transfer_international",direction:"debit",amount,currency:userData.currency,description:`International transfer to ${name} (${country})`,details:{recipientName:name,recipientCountry:country,bankName:$("itBankName").value.trim(),swift:$("itSwift").value.trim().toUpperCase(),accountNumber:$("itAccountNumber").value.replace(/\s/g,"").toUpperCase(),destCurrency:$("itCurrency").value,purpose:$("itPurpose").value,narration:$("itNarration").value.trim()}});$("intlTransferForm").reset();setAlert($("transferAlert"),"Transfer verified and submitted — pending admin approval.","ok");toast("Transfer submitted","ok");});});
+  $("localTransferForm").addEventListener("submit",(e)=>{e.preventDefault();if(!userData.active)return toast("Your account is pending approval — transfers are locked.","bad");if(!validateLocal())return;const amount=Number($("ltAmount").value),name=$("ltAccountName").value.trim();openVerification({to:`${name} · ${$("ltBankName").value.trim()}`,amountText:fmtMoney(amount,userData.currency)},async()=>{await createTransaction({type:"transfer_local",direction:"debit",amount,currency:userData.currency,description:`Local transfer to ${name}`,details:{bankName:$("ltBankName").value.trim(),accountNumber:$("ltAccountNumber").value.trim(),accountName:name,narration:$("ltNarration").value.trim()}});$("localTransferForm").reset();setAlert($("transferAlert"),"Transfer verified and submitted — pending admin approval.","ok");toast("Transfer submitted","ok");
+    // Send transfer submitted email
+    const firstName=(userData.fullName||"").split(" ")[0]||"there";
+    sendTransferEmail({
+      subject:"Your PrimePay local transfer is being processed",
+      headline:`Your local transfer has been submitted.`,
+      body_text:`Hi ${firstName}, your local transfer has passed all verification steps and is now being reviewed by our team. You will receive another email once it is approved.`,
+      amount:fmtMoney(amount,userData.currency),
+      transaction_type:"Local bank transfer",
+      extra_label:"Recipient",
+      extra_value:`${name} — ${$("ltBankName").value.trim()}`,
+      date:new Date().toLocaleString([],{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}),
+      notice_color:"#C9A227",notice_bg:"#FFFBEE",notice_title_color:"#94720C",
+      notice_title:"Pending admin approval",
+      notice_body:"Our team typically reviews transfers within a few hours. We will email you as soon as it is approved.",
+    });
+  });});;
+  $("intlTransferForm").addEventListener("submit",(e)=>{e.preventDefault();if(!userData.active)return toast("Your account is pending approval — transfers are locked.","bad");if(!validateIntl())return;const amount=Number($("itAmount").value),name=$("itName").value.trim(),country=$("itCountry").value;openVerification({to:`${name} · ${country}`,amountText:fmtMoney(amount,userData.currency)},async()=>{await createTransaction({type:"transfer_international",direction:"debit",amount,currency:userData.currency,description:`International transfer to ${name} (${country})`,details:{recipientName:name,recipientCountry:country,bankName:$("itBankName").value.trim(),swift:$("itSwift").value.trim().toUpperCase(),accountNumber:$("itAccountNumber").value.replace(/\s/g,"").toUpperCase(),destCurrency:$("itCurrency").value,purpose:$("itPurpose").value,narration:$("itNarration").value.trim()}});$("intlTransferForm").reset();setAlert($("transferAlert"),"Transfer verified and submitted — pending admin approval.","ok");toast("Transfer submitted","ok");
+    // Send transfer submitted email
+    const firstName=(userData.fullName||"").split(" ")[0]||"there";
+    sendTransferEmail({
+      subject:"Your PrimePay international transfer is being processed",
+      headline:`Your international transfer has been submitted.`,
+      body_text:`Hi ${firstName}, your international wire transfer has passed all verification steps and is now being reviewed by our team. You will receive another email once it is approved.`,
+      amount:fmtMoney(amount,userData.currency),
+      transaction_type:"International wire (SWIFT)",
+      extra_label:"Beneficiary",
+      extra_value:`${name} — ${country}`,
+      date:new Date().toLocaleString([],{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}),
+      notice_color:"#C9A227",notice_bg:"#FFFBEE",notice_title_color:"#94720C",
+      notice_title:"Pending admin approval",
+      notice_body:"Our team typically reviews international transfers within a few hours. We will email you as soon as it is approved.",
+    });
+  });});;
 
   const STAGES=[{key:"imf",title:"IMF Clearance Code",sub:"Enter the 4-digit International Monetary Fund clearance code issued to you by PrimePay support."},{key:"cot",title:"COT Code",sub:"Enter your 4-digit Cost of Transfer (COT) code to authorise processing."},{key:"verification",title:"Verification Code",sub:"Enter your 4-digit account verification code to confirm this transfer is really you."},{key:"aml",title:"AML Certificate Code",sub:"Enter your 4-digit Anti-Money Laundering certificate code to continue."},{key:"tax",title:"Federal Tax Clearance Code",sub:"Enter your 4-digit Federal Tax Clearance code to release your funds."}];
   let vCallback=null, vIndex=0, vBusy=false;
@@ -1093,17 +1163,17 @@
      CHAT JAVASCRIPT
      ============================================================ -->
 <script type="module">
-  import { getDatabase, ref as dbRef, push, set, onValue, update, serverTimestamp }
+  import { getDatabase, ref as dbRef, push, set, onValue, update }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { initializeApp, getApps }
+  import { getApps }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-  /* Re-use the already-initialised Firebase app */
-  const app  = getApps()[0];
-  const auth = getAuth(app);
-  const db   = getDatabase(app);
+  /* Re-use the already-initialised Firebase app — no redeclaration */
+  const _app  = getApps()[0];
+  const _auth = getAuth(_app);
+  const _db   = getDatabase(_app);
 
   const fab       = document.getElementById("chatFab");
   const modal     = document.getElementById("chatModal");
@@ -1136,7 +1206,7 @@
     fabBadge.classList.remove("show");
     fabBadge.textContent = "";
     // mark all as seen
-    if (uid) update(dbRef(db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
+    if (uid) update(dbRef(_db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
     scrollBottom(true);
     input.focus();
   }
@@ -1169,7 +1239,7 @@
 
     const isFirstEver = msgArea.querySelectorAll(".chat-bubble-wrap").length === 0;
 
-    await push(dbRef(db, `chats/${uid}/messages`), {
+    await push(dbRef(_db, `chats/${uid}/messages`), {
       text,
       sender: "user",
       senderName: userName,
@@ -1177,7 +1247,7 @@
     });
 
     // Update meta
-    await update(dbRef(db, `chats/${uid}/meta`), {
+    await update(dbRef(_db, `chats/${uid}/meta`), {
       uid,
       userName,
       lastMessage: text,
@@ -1190,13 +1260,13 @@
     // If this is the very first message, queue the welcome reply
     if (isFirstEver) {
       setTimeout(async () => {
-        await push(dbRef(db, `chats/${uid}/messages`), {
+        await push(dbRef(_db, `chats/${uid}/messages`), {
           text: "👋 Welcome to PrimePay Support! How can we help you today?",
           sender: "admin",
           senderName: "PrimePay Support",
           ts: Date.now() + 1,
         });
-        await update(dbRef(db, `chats/${uid}/meta`), {
+        await update(dbRef(_db, `chats/${uid}/meta`), {
           lastMessage: "👋 Welcome to PrimePay Support! How can we help you today?",
           lastTs: Date.now() + 1,
           lastSender: "admin",
@@ -1300,7 +1370,7 @@
     welcomeBanner.innerHTML = `<p>💬</p><p>Send us a message and we'll get back to you right away.</p>`;
     msgArea.appendChild(welcomeBanner);
 
-    onValue(dbRef(db, `chats/${uid}/messages`), (snap) => {
+    onValue(dbRef(_db, `chats/${uid}/messages`), (snap) => {
       const data = snap.val();
 
       // Remove welcome banner once we have messages
@@ -1336,7 +1406,7 @@
             if (chatOpen) {
               // Already open — just scroll
               scrollBottom(true);
-              if (uid) update(dbRef(db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
+              if (uid) update(dbRef(_db, `chats/${uid}/meta`), { lastSeenByUser: Date.now() });
             } else {
               // Chat is closed — badge + in-app notif + browser push
               unreadCount++;
@@ -1353,7 +1423,7 @@
   }
 
   // ---- auth ----
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(_auth, (user) => {
     if (!user) return;
     uid      = user.uid;
     userName = user.displayName || user.email || "User";

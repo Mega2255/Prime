@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -116,7 +118,8 @@
     <p class="pl-status" data-step="0">Creating your secure login</p>
     <p class="pl-status" data-step="1">Generating your account number</p>
     <p class="pl-status" data-step="2">Saving your profile</p>
-    <p class="pl-status" data-step="3">Almost there…</p>
+    <p class="pl-status" data-step="3">Sending your welcome email</p>
+    <p class="pl-status" data-step="4">Almost there…</p>
   </div>
 </div>
 
@@ -350,7 +353,7 @@
 </main>
 
 <script>
-  // Entrance preloader (independent of the account-creation flow below)
+  // Entrance preloader
   const pageLoader = document.getElementById('pageLoader');
   const pageLoaderBar = document.getElementById('pageLoaderBar');
   requestAnimationFrame(() => { pageLoaderBar.style.width = '100%'; });
@@ -363,14 +366,14 @@
   import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
- const firebaseConfig = {
-  apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
-  authDomain: "prime-d3446.firebaseapp.com",
-  projectId: "prime-d3446",
-  storageBucket: "prime-d3446.firebasestorage.app",
-  messagingSenderId: "13799287511",
-  appId: "1:13799287511:web:c2ccac1eddb7c0b5a4de92"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
+    authDomain: "prime-d3446.firebaseapp.com",
+    projectId: "prime-d3446",
+    storageBucket: "prime-d3446.firebasestorage.app",
+    messagingSenderId: "13799287511",
+    appId: "1:13799287511:web:c2ccac1eddb7c0b5a4de92"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -378,7 +381,34 @@
 
   const $ = (id) => document.getElementById(id);
 
-  /* ---------- countries & currencies (kept in sync with the dashboard) ---------- */
+  /* ── EmailJS init ─────────────────────────────────────────── */
+  emailjs.init("eOhocbTvKcHhm7gjq");
+
+  /* ── Send welcome email ───────────────────────────────────── */
+  async function sendWelcomeEmail(toEmail, fullName, accountNumber, currency) {
+    try {
+      await emailjs.send(
+        "service_l1ohh9e",   // Service ID
+        "template_lolydes",  // Template ID
+        {
+          to_email:       toEmail,
+          first_name:     fullName.split(" ")[0],
+          full_name:      fullName,
+          account_number: accountNumber,
+          currency:       currency || "USD",
+          dashboard_url:  "https://primepy.online/dashboard.html", // ← replace with your real URL
+          support_email:  "support@primepy.online",                // ← replace with your real email
+          year:           new Date().getFullYear(),
+        }
+      );
+      console.log("Welcome email sent successfully");
+    } catch (err) {
+      // Email failure does NOT block registration
+      console.error("Welcome email failed (non-blocking):", err);
+    }
+  }
+
+  /* ---------- countries & currencies ---------- */
   const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Brazzaville)","Congo (DRC)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
   const CURRENCIES = [
     { code: "USD", name: "US Dollar" }, { code: "EUR", name: "Euro" }, { code: "GBP", name: "British Pound" },
@@ -551,58 +581,68 @@
     showPreloader();
     setPreloaderStep(0, "Creating your secure login…");
 
-    const email = $("email").value.trim();
+    const email    = $("email").value.trim();
     const password = $("password").value;
     const firstName = $("firstName").value.trim();
-    const lastName = $("lastName").value.trim();
-    const fullName = `${firstName} ${lastName}`.trim();
+    const lastName  = $("lastName").value.trim();
+    const fullName  = `${firstName} ${lastName}`.trim();
+    const currency  = $("currency").value;
 
     try {
+      /* Step 1 — create Firebase auth user */
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = cred.user.uid;
+      const uid  = cred.user.uid;
       try { await updateProfile(cred.user, { displayName: fullName }); } catch (_) {}
 
+      /* Step 2 — generate account number */
       setPreloaderStep(1, "Generating your account number…");
       const accountNumber = await reserveAccountNumber(uid);
 
+      /* Step 3 — save profile to database */
       setPreloaderStep(2, "Saving your profile…");
       const userRecord = {
         firstName, lastName, fullName,
         email,
-        phone: $("phone").value.trim(),
-        dob: $("dob").value,
-        country: $("country").value,
-        currency: $("currency").value,
-        address: $("address").value.trim(),
-        city: $("city").value.trim(),
-        state: $("state").value.trim(),
-        postalCode: $("postalCode").value.trim(),
+        phone:            $("phone").value.trim(),
+        dob:              $("dob").value,
+        country:          $("country").value,
+        currency,
+        address:          $("address").value.trim(),
+        city:             $("city").value.trim(),
+        state:            $("state").value.trim(),
+        postalCode:       $("postalCode").value.trim(),
         employmentStatus: $("employmentStatus").value,
-        occupation: $("occupation").value.trim(),
-        accountType: $("accountType").value,
+        occupation:       $("occupation").value.trim(),
+        accountType:      $("accountType").value,
         accountNumber,
-        balance: 0,
-        active: false,
-        suspended: false,
+        balance:          0,
+        active:           false,
+        suspended:        false,
         securityQuestion: $("securityQuestion").value,
-        securityAnswer: $("securityAnswer").value.trim(),
+        securityAnswer:   $("securityAnswer").value.trim(),
         securityAnswerHint: $("securityAnswerHint").value.trim(),
-        createdAt: new Date().toISOString(),
+        createdAt:        new Date().toISOString(),
       };
       await set(ref(db, `users/${uid}`), userRecord);
 
-      setPreloaderStep(3, "Almost there…");
+      /* Step 4 — send welcome email via EmailJS (non-blocking) */
+      setPreloaderStep(3, "Sending your welcome email…");
+      await sendWelcomeEmail(email, fullName, accountNumber, currency);
+
+      /* Step 5 — done, redirect */
+      setPreloaderStep(4, "Almost there…");
       await new Promise((r) => setTimeout(r, 500));
 
       window.location.href = "dashboard.html";
+
     } catch (err) {
       $("preloader").classList.add("hidden");
       $("preloader").classList.remove("flex");
       submitBtn.disabled = false;
       const messages = {
         "auth/email-already-in-use": "An account already exists with that email — try logging in instead.",
-        "auth/invalid-email": "That email address doesn't look right.",
-        "auth/weak-password": "Please choose a stronger password (at least 8 characters).",
+        "auth/invalid-email":        "That email address doesn't look right.",
+        "auth/weak-password":        "Please choose a stronger password (at least 8 characters).",
       };
       const errEl = $("submitError");
       errEl.textContent = messages[err.code] || err.message || "Something went wrong — please try again.";

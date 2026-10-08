@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -492,6 +494,48 @@
   const db = getDatabase(app);
   const $ = (id) => document.getElementById(id);
 
+  /* ── EmailJS ─────────────────────────────────────────────── */
+  emailjs.init("eOhocbTvKcHhm7gjq");
+
+  const EMAILJS_SERVICE   = "service_l1ohh9e";
+  const EMAILJS_TMPL_NOTIF = "template_mu13vzu"; // credit/debit/approve/transfer notifications
+
+  const SUPPORT_EMAIL   = "support@primepy.online"; // ← replace with your real email
+  const DASHBOARD_URL   = "https://primepy.online/dashboard.html"; // ← replace with your real URL
+
+  // Keep notification content conservative for SMTP spam filtering.
+  // Subjects are also sanitized as a final safeguard.
+  const stripSpammyText = (value) => String(value ?? "")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, "")
+    .replace(/!+/g, ".")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  async function sendPrimepayEmail(toEmail, params) {
+    try {
+      const safeParams = {};
+      for (const [key, value] of Object.entries(params || {})) {
+        safeParams[key] = typeof value === "string"
+          ? stripSpammyText(value)
+          : value;
+      }
+
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TMPL_NOTIF, {
+        to_email:           toEmail,
+        support_email:      SUPPORT_EMAIL,
+        dashboard_url:      DASHBOARD_URL,
+        year:               new Date().getFullYear(),
+        ...safeParams,
+      });
+    } catch (err) {
+      console.error("EmailJS send failed (non-blocking):", err);
+    }
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso || Date.now()).toLocaleString([], { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  }
+
   let allUsers = {};
   let allTx = [];
   let activeUid = null;
@@ -747,6 +791,68 @@
     try {
       await update(ref(db), updates);
       showToast(decision === "approved" ? "Transaction approved" : "Transaction rejected", decision === "approved" ? "mint" : "rose");
+
+      // Send email to user
+      if (user.email) {
+        const fullName = user.fullName || [user.firstName, user.lastName].filter(Boolean).join(" ") || "Valued Customer";
+        const firstName = fullName.split(" ")[0];
+        const isDeposit = tx.type && tx.type.startsWith("deposit");
+        const isTransfer = tx.type === "transfer_local" || tx.type === "transfer_international";
+        const amtStr = tx.amount != null ? fmtMoney(tx.amount, tx.currency) : "—";
+        const typeLabel = prettyType(tx.type);
+        const d = tx.details || {};
+
+        let recipient = "—";
+        if (tx.type === "transfer_local") recipient = `${d.accountName || ""} — ${d.bankName || ""}`.trim().replace(/^—|—$/, "").trim();
+        if (tx.type === "transfer_international") recipient = `${d.recipientName || ""} (${d.recipientCountry || ""})`.trim();
+        if (isDeposit) recipient = d.reference || d.coin || "Bank transfer";
+
+        if (decision === "approved") {
+          sendPrimepayEmail(user.email, {
+            subject:            isDeposit
+              ? "Update on your PrimePay deposit"
+              : "Update on your PrimePay transfer",
+            headline:           isDeposit
+              ? `Deposit approved. ${amtStr} has been added to your account.`
+              : `Transfer approved. ${amtStr} has been sent successfully.`,
+            body_text:          isDeposit
+              ? `Hi ${firstName}, your deposit of ${amtStr} has been reviewed and approved. The funds are now available in your balance.`
+              : `Hi ${firstName}, your transfer of ${amtStr} has been reviewed and approved. The funds are on their way.`,
+            amount:             amtStr,
+            transaction_type:   typeLabel,
+            extra_label:        isTransfer ? "Recipient" : "Reference",
+            extra_value:        recipient,
+            date:               fmtDate(tx.reviewedAt || new Date().toISOString()),
+            notice_color:       "#1C7C54",
+            notice_bg:          "#EAF6EF",
+            notice_title_color: "#0F5132",
+            notice_title:       "Transaction approved",
+            notice_body:        isDeposit
+              ? "Your deposit has been confirmed and your balance has been updated. You can view this in your dashboard."
+              : "Your transfer has been processed and is on its way to the recipient.",
+          });
+        } else {
+          sendPrimepayEmail(user.email, {
+            subject:            isDeposit
+              ? "Update on your PrimePay deposit"
+              : "Update on your PrimePay transfer",
+            headline:           isDeposit
+              ? `Deposit not approved — ${amtStr}`
+              : `Transfer not approved — ${amtStr}`,
+            body_text:          `Hi ${firstName}, unfortunately your ${isDeposit ? "deposit" : "transfer"} of ${amtStr} could not be approved at this time. Please contact our support team for more information.`,
+            amount:             amtStr,
+            transaction_type:   typeLabel,
+            extra_label:        isTransfer ? "Recipient" : "Reference",
+            extra_value:        recipient,
+            date:               fmtDate(tx.reviewedAt || new Date().toISOString()),
+            notice_color:       "#C6473F",
+            notice_bg:          "#FBEAE8",
+            notice_title_color: "#7F1D1D",
+            notice_title:       "Action required",
+            notice_body:        "Please contact our support team for assistance or to resubmit your request.",
+          });
+        }
+      }
     } catch (err) {
       showToast("Something went wrong — try again.", "rose");
     }
@@ -840,9 +946,29 @@
 
   $("umApproveBtn").addEventListener("click", async () => {
     if (!activeUid) return;
+    const u = allUsers[activeUid] || {};
     await update(ref(db, `users/${activeUid}`), { active: true });
     showToast("Account approved and activated", "mint");
     openUserModal(activeUid);
+    // Send activation email
+    if (u.email) {
+      const fullName = u.fullName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "Valued Customer";
+      sendPrimepayEmail(u.email, {
+        subject:            "Your PrimePay account is now active",
+        headline:           `Great news, ${fullName.split(" ")[0]}. Your account is active.`,
+        body_text:          "Our team has reviewed and approved your PrimePay account. You can now make deposits and transfers.",
+        amount:             "—",
+        transaction_type:   "Account activation",
+        extra_label:        "Account number",
+        extra_value:        u.accountNumber || "—",
+        date:               fmtDate(new Date().toISOString()),
+        notice_color:       "#1C7C54",
+        notice_bg:          "#EAF6EF",
+        notice_title_color: "#0F5132",
+        notice_title:       "Account fully activated",
+        notice_body:        "You can now deposit funds, make local transfers, and international wire transfers from your dashboard.",
+      });
+    }
   });
   $("umDeactivateBtn").addEventListener("click", async () => {
     if (!activeUid) return;
@@ -894,6 +1020,32 @@
     try {
       await update(ref(db), updates);
       showToast("Balance updated", "mint");
+      // Send email notification to user
+      if (user.email) {
+        const fullName = user.fullName || [user.firstName, user.lastName].filter(Boolean).join(" ") || "Valued Customer";
+        const isCredit = direction === "credit";
+        sendPrimepayEmail(user.email, {
+          subject:            "Your PrimePay account balance has been updated",
+          headline:           isCredit
+            ? `Your account has been credited ${fmtMoney(amount, user.currency)}.`
+            : `Your account has been debited ${fmtMoney(amount, user.currency)}.`,
+          body_text:          isCredit
+            ? (senderName ? `A payment of ${fmtMoney(amount, user.currency)} from ${senderName} has been added to your PrimePay account.` : `Your PrimePay account has been credited with ${fmtMoney(amount, user.currency)}.`)
+            : `An amount of ${fmtMoney(amount, user.currency)} has been debited from your PrimePay account.`,
+          amount:             fmtMoney(amount, user.currency),
+          transaction_type:   isCredit ? "Account credit" : "Account debit",
+          extra_label:        senderName ? "Sender" : "Reference",
+          extra_value:        senderName || note || "PrimePay",
+          date:               fmtDate(new Date().toISOString()),
+          notice_color:       isCredit ? "#1C7C54" : "#C9A227",
+          notice_bg:          isCredit ? "#EAF6EF" : "#FFFBEE",
+          notice_title_color: isCredit ? "#0F5132" : "#94720C",
+          notice_title:       isCredit ? "Funds available immediately" : "Balance updated",
+          notice_body:        isCredit
+            ? "The credited amount is now available in your balance. Log in to your dashboard to view your updated balance."
+            : "The debited amount has been removed from your balance. Log in to your dashboard to view your updated balance.",
+        });
+      }
       $("umAdjustAmount").value = "";
       $("umAdjustSender").value = "";
       $("umAdjustNote").value = "";
