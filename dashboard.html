@@ -556,9 +556,9 @@
   // Keep notification content conservative for SMTP spam filtering.
   // This does not change the dashboard UI or transaction logic.
   const stripSpammyText = (value) => String(value ?? "")
-    .replace(/[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{FE0F}\\u{200D}]/gu, "")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, "")
     .replace(/!+/g, ".")
-    .replace(/\\s{2,}/g, " ")
+    .replace(/\s{2,}/g, " ")
     .trim();
 
   async function sendTransferEmail(params) {
@@ -1167,11 +1167,19 @@
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getApps }
+  import { getApps, getApp, initializeApp }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-  /* Re-use the already-initialised Firebase app — no redeclaration */
-  const _app  = getApps()[0];
+  /* Reuse the main script's Firebase app. If it is ever missing (for example the main script
+     failed to load), create it from the same config instead of crashing with app/no-app. */
+  const _app  = getApps().length ? getApp() : initializeApp({
+    apiKey: "AIzaSyCdgl-x3Lz_EtZnF7NubiHIn1VxuT1wEb4",
+    authDomain: "prime-d3446.firebaseapp.com",
+    projectId: "prime-d3446",
+    storageBucket: "prime-d3446.firebasestorage.app",
+    messagingSenderId: "13799287511",
+    appId: "1:13799287511:web:c2ccac1eddb7c0b5a4de92"
+  });
   const _auth = getAuth(_app);
   const _db   = getDatabase(_app);
 
